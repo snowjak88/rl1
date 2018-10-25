@@ -33,6 +33,7 @@ allprojects {
         artemisODBContribVersion = '2.2.0'
         asciiPanelVersion = 'master-SNAPSHOT'
         picoCLIVersion = '3.7.0'
+        guavaVersion = '27.0-jre'
         slf4jVersion = '1.7.25'
     }
 
@@ -72,8 +73,9 @@ project(':core') {
         compile "net.onedaybeard.artemis:artemis-odb:$artemisODBVersion"
         compile "net.mostlyoriginal.artemis-odb:contrib-core:$artemisODBContribVersion"
         compile "net.mostlyoriginal.artemis-odb:contrib-eventbus:$artemisODBContribVersion"
-        compile "com.github.trystan:AsciiPanel:$asciiPanelVersion"
 		compile "info.picocli:picocli:$picoCLIVersion"
+        
+		compile "com.google.guava:guava:$guavaVersion"
         
 		compile "org.slf4j:slf4j-api:$slf4jVersion"
 		compile "org.slf4j:slf4j-simple:$slf4jVersion"

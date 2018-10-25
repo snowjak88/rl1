@@ -52,14 +52,14 @@ public class VisionCheckingSystem extends IteratingSystem {
 	protected void process(int entityID) {
 		
 		if (viewingEntities == null)
-			viewingEntities = Context.get().odb.getAspectSubscriptionManager()
+			viewingEntities = Context.get().odb().getAspectSubscriptionManager()
 					.get(Aspect.all(CanReportVision.class, HasPosition.class));
 		
 		for (int i = 0; i < viewingEntities.getEntities().size(); i++) {
 			
 			final int viewerID = viewingEntities.getEntities().get(i);
 			if (canSee(viewerID, entityID))
-				Context.get().es.dispatch(new VisionEvent(viewerID, entityID));
+				Context.get().es().dispatch(new VisionEvent(viewerID, entityID));
 			
 		}
 	}

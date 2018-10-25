@@ -1,13 +1,12 @@
 /**
  * 
  */
-package org.snowjak.rl1.screen;
+package org.snowjak.rl1.drawing.ascii;
 
 import java.util.function.BiFunction;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.snowjak.rl1.drawing.ascii.AsciiFont;
 import org.snowjak.rl1.util.IntPair;
 
 import com.badlogic.gdx.Gdx;
@@ -18,6 +17,8 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 
 /**
+ * Implements an ASCII display on LibGdx.
+ * 
  * @author snowjak88
  *
  */
@@ -28,23 +29,30 @@ public class AsciiScreen extends ScreenAdapter {
 	public static final Color DEFAULT_FOREGROUND = Color.LIGHT_GRAY;
 	public static final Color DEFAULT_BACKGROUND = Color.BLACK;
 	
-	private AsciiFont font;
-	private Color foregroundColor = DEFAULT_FOREGROUND, backgroundColor = DEFAULT_BACKGROUND;
-	private final boolean[][] updated;
 	private final char[][] buffer;
 	private final Color[][][] colors;
+	
+	private final SpriteBatch screenBatch;
+	
+	private AsciiFont font;
+	private Color foregroundColor = DEFAULT_FOREGROUND, backgroundColor = DEFAULT_BACKGROUND;
 	
 	private IntPair cursor;
 	private CursorMode cursorMode;
 	
-	private final SpriteBatch screenBatch;
 	private float scale = 1, offsetX = 0, offsetY = 0;
-	private int width, height;
-	private boolean updatedWH = false;
 	
+	/**
+	 * Construct a new {@link AsciiScreen} with {@code widthInChars} columns and
+	 * {@code heightInChars} rows, using the specified {@link AsciiFont}.
+	 * 
+	 * @param widthInChars
+	 * @param heightInChars
+	 * @param font
+	 */
 	public AsciiScreen(int widthInChars, int heightInChars, AsciiFont font) {
 		
-		this(widthInChars, heightInChars, font, CursorMode.WRAP);
+		this(widthInChars, heightInChars, font, CursorMode.NOP);
 	}
 	
 	public AsciiScreen(int widthInChars, int heightInChars, AsciiFont font, CursorMode cursorMode) {
@@ -55,19 +63,14 @@ public class AsciiScreen extends ScreenAdapter {
 		assert (cursorMode != null);
 		
 		this.font = font;
-		this.updated = new boolean[widthInChars][heightInChars];
 		this.buffer = new char[widthInChars][heightInChars];
 		this.colors = new Color[widthInChars][heightInChars][2];
 		this.cursor = new IntPair(0, 0);
 		this.cursorMode = cursorMode;
 		
-		this.screenBatch = new SpriteBatch(widthInChars * heightInChars);
+		this.screenBatch = new SpriteBatch(Math.min(8191, widthInChars * heightInChars));
 		
-		for (int x = 0; x < widthInChars; x++)
-			for (int y = 0; y < heightInChars; y++) {
-				this.colors[x][y][0] = DEFAULT_FOREGROUND;
-				this.colors[x][y][1] = DEFAULT_BACKGROUND;
-			}
+		clear();
 	}
 	
 	/*
@@ -81,23 +84,17 @@ public class AsciiScreen extends ScreenAdapter {
 		final TextureRegion fillTex = font.getChar((char) 219);
 		
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-		screenBatch.getProjectionMatrix().setToOrtho2D(0, 0, width, height);
 		screenBatch.begin();
 		
+		int i = 0;
 		for (int x = 0; x < getWidthInChars(); x++)
 			for (int y = 0; y < getHeightInChars(); y++) {
-				// if (updated[x][y]) {
 				
 				final TextureRegion charTex = font.getChar(get(x, y));
 				
 				final float screenX = ((float) x * (float) font.getCharWidth() * scale) + offsetX;
 				final float screenY = ((float) (getHeightInChars() - y - 1) * (float) font.getCharHeight() * scale)
 						+ offsetY;
-				
-				if (((x == 0 || x == 24) && (y == 0 || y == 24)) && updatedWH) {
-					LOG.info("( {}, {} ) --> ( {}, {} ) ( W/H = {}x{} )", x, y, screenX, screenY,
-							(float) font.getCharWidth() * scale, (float) font.getCharHeight() * scale);
-				}
 				
 				screenBatch.setColor(colors[x][y][1]);
 				screenBatch.draw(fillTex, screenX, screenY, (float) font.getCharWidth() * scale,
@@ -109,11 +106,15 @@ public class AsciiScreen extends ScreenAdapter {
 						(float) font.getCharHeight() * scale);
 				screenBatch.disableBlending();
 				
-				updated[x][y] = false;
+				i += 2;
+				if (i >= 8190) {
+					screenBatch.end();
+					screenBatch.begin();
+					i = 0;
+				}
 			}
 		
 		screenBatch.end();
-		updatedWH = false;
 	}
 	
 	/*
@@ -136,20 +137,13 @@ public class AsciiScreen extends ScreenAdapter {
 	@Override
 	public void resize(int width, int height) {
 		
-		updatedWH = true;
-		this.width = width;
-		this.height = height;
-		
-		LOG.info("resize({},{})", width, height);
+		screenBatch.getProjectionMatrix().setToOrtho2D(0, 0, width, height);
 		
 		final float textSizeX = (float) getWidthInChars() * (float) font.getCharWidth();
 		final float textSizeY = (float) getHeightInChars() * (float) font.getCharHeight();
-		LOG.info("textSize = ( {}, {} )", textSizeX, textSizeY);
 		
 		final float scaleX = (float) width / textSizeX;
 		final float scaleY = (float) height / textSizeY;
-		
-		LOG.info("scale = ( {}, {} )", scaleX, scaleY);
 		
 		if (scaleX <= scaleY) {
 			this.scale = scaleX;
@@ -160,9 +154,6 @@ public class AsciiScreen extends ScreenAdapter {
 			this.offsetX = ((float) width - textSizeX * scale) / 2f;
 			this.offsetY = 0;
 		}
-		
-		LOG.info("offset = ( {}, {} )", offsetX, offsetY);
-		
 	}
 	
 	/**
@@ -219,10 +210,12 @@ public class AsciiScreen extends ScreenAdapter {
 	 */
 	public void put(char c) {
 		
+		if (!isOnScreen(cursor.getFirst(), cursor.getSecond()))
+			return;
+		
 		buffer[cursor.getFirst()][cursor.getSecond()] = c;
 		colors[cursor.getFirst()][cursor.getSecond()][0] = foregroundColor;
 		colors[cursor.getFirst()][cursor.getSecond()][1] = backgroundColor;
-		updated[cursor.getFirst()][cursor.getSecond()] = true;
 	}
 	
 	/**
@@ -247,6 +240,24 @@ public class AsciiScreen extends ScreenAdapter {
 	public char get(int x, int y) {
 		
 		return buffer[x][y];
+	}
+	
+	/**
+	 * Clear the screen.
+	 */
+	public void clear() {
+		
+		for (int x = 0; x < getWidthInChars(); x++)
+			for (int y = 0; y < getHeightInChars(); y++) {
+				buffer[x][y] = 0;
+				colors[x][y][0] = DEFAULT_FOREGROUND;
+				colors[x][y][1] = DEFAULT_BACKGROUND;
+			}
+	}
+	
+	public boolean isOnScreen(int x, int y) {
+		
+		return ((x >= 0 && x < getWidthInChars()) && (y >= 0 && y < getHeightInChars()));
 	}
 	
 	/**
@@ -364,15 +375,47 @@ public class AsciiScreen extends ScreenAdapter {
 	 */
 	public enum CursorMode {
 		/**
-		 * The cursor will wrap around to the next row, or move to the first row
+		 * The cursor will be scrolled to the first valid screen location.
+		 * Column-wrapping will be resolved to the next/previous row. Row-wrapping will
+		 * be resolved by scrolling up/down.
 		 */
-		WRAP((as, p) -> new IntPair(p.getFirst() % as.getWidthInChars(), p.getSecond() % as.getHeightInChars())),
+		WRAP((as, p) -> {
+			IntPair i = p;
+			while (i.getFirst() < 0 || i.getFirst() >= as.getWidthInChars() || i.getSecond() < 0
+					|| i.getSecond() >= as.getHeightInChars()) {
+				if (i.getSecond() < 0)
+					i = new IntPair(i.getFirst() - 1, as.getHeightInChars() - 1);
+				else if (i.getSecond() >= as.getHeightInChars())
+					i = new IntPair(i.getFirst() + 1, 0);
+				else if (i.getFirst() < 0)
+					i = new IntPair(i.getFirst() + as.getWidthInChars(), i.getSecond());
+				else if (i.getFirst() >= as.getWidthInChars())
+					i = new IntPair(i.getFirst() - as.getWidthInChars(), i.getSecond());
+			}
+			return i;
+		}),
+		/**
+		 * The cursor will be moved to lie within {@code (0,0) - (w,h)} using the
+		 * modulus operator.
+		 */
+		MOD((as, p) -> {
+			int w = p.getFirst(), h = p.getSecond();
+			while (w < 0)
+				w += as.getWidthInChars();
+			while (h < 0)
+				h += as.getHeightInChars();
+			return new IntPair(w % as.getWidthInChars(), h % as.getHeightInChars());
+		}),
 		/**
 		 * The cursor will move to the closest row/column on the screen to the directed
 		 * position
 		 */
 		CLIP((as, p) -> new IntPair(Math.min(Math.max(p.getFirst(), 0), as.getWidthInChars() - 1),
 				Math.min(Math.max(p.getSecond(), 0), as.getHeightInChars() - 1))),
+		/**
+		 * The cursor is allowed to be placed wherever.
+		 */
+		NOP((as, p) -> p),
 		/**
 		 * The cursor will throw an {@link ArrayIndexOutOfBoundsException} when directed
 		 * to move outside the screen's limits

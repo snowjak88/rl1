@@ -3,16 +3,23 @@
  */
 package org.snowjak.rl1;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snowjak.rl1.config.Options;
-import org.snowjak.rl1.screen.AsciiScreen;
+import org.snowjak.rl1.drawing.ascii.AsciiScreen;
+import org.snowjak.rl1.map.Map;
 
 import com.artemis.World;
 import com.artemis.WorldConfiguration;
 import com.artemis.WorldConfigurationBuilder;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.graphics.Color;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 
 import net.mostlyoriginal.api.event.common.Event;
 import net.mostlyoriginal.api.event.common.EventSystem;
@@ -40,9 +47,16 @@ public class App extends Game {
 	 */
 	public final Options options;
 	
+	/**
+	 * The central {@link ExecutorService}.
+	 */
+	public final ListeningExecutorService executor;
+	
 	public App(Options options) {
 		
 		super();
+		
+		Context.initialize(this);
 		
 		this.options = options;
 		this.events = new EventSystem();
@@ -57,6 +71,14 @@ public class App extends Game {
 		
 		this.odb = new World(worldConfig);
 		
+		if (options.getParallelism() <= 0) {
+			LOG.info("Not using parallelism.");
+			executor = MoreExecutors.newDirectExecutorService();
+		} else {
+			LOG.info("Using parallelism level {}.", options.getParallelism());
+			executor = MoreExecutors.listeningDecorator(MoreExecutors.getExitingExecutorService(
+					(ThreadPoolExecutor) Executors.newFixedThreadPool(options.getParallelism())));
+		}
 	}
 	
 	/*
@@ -67,20 +89,25 @@ public class App extends Game {
 	@Override
 	public void create() {
 		
-		final AsciiScreen screen = new AsciiScreen(options.getScreenWidth(), options.getScreenHeight(),
-				options.getFont());
-		setScreen(screen);
+		final Map map = new Map(options.getSeed(), options.getMapLargestFeature(), options.getMapFeaturePersistence(),
+				options.getMapLowestAltitude(), options.getMapHighestAltitude());
 		
-		screen.color();
-		screen.background(Color.BLACK);
-		screen.write("This is the song we sing for ");
-		screen.foreground(Color.RED);
-		screen.write("Col");
-		screen.foreground(Color.WHITE);
-		screen.write("ora");
-		screen.foreground(Color.BLUE);
-		screen.write("do!");
-		screen.color();
+		final AsciiScreen ascii = new AsciiScreen(options.getScreenWidth(), options.getScreenHeight(),
+				options.getFont());
+		
+		for (int x = 0; x < options.getScreenWidth(); x++)
+			for (int y = 0; y < options.getScreenHeight(); y++) {
+				
+				final float height = (float) map.getHeightFrac(x, y);
+				final Color color = new Color(height, height, height, 1);
+				
+				ascii.foreground(color);
+				ascii.put((char) 219, x, y);
+				ascii.foreground();
+				
+			}
+		
+		setScreen(ascii);
 	}
 	
 	/*
@@ -92,7 +119,6 @@ public class App extends Game {
 	public void dispose() {
 		
 		super.dispose();
-		
 		this.options.dispose();
 	}
 	

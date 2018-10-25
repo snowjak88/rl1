@@ -3,13 +3,11 @@
  */
 package org.snowjak.rl1.components;
 
-import java.awt.Color;
-
 import org.snowjak.rl1.drawing.DrawableLayer;
+import org.snowjak.rl1.drawing.ascii.AsciiScreen;
 
 import com.artemis.PooledComponent;
-
-import asciiPanel.AsciiPanel;
+import com.badlogic.gdx.graphics.Color;
 
 /**
  * Denotes that an entity can be drawn.
@@ -20,7 +18,7 @@ import asciiPanel.AsciiPanel;
 public class IsDrawable extends PooledComponent {
 	
 	public String drawable = "";
-	public Color color = AsciiPanel.white;
+	public Color color = AsciiScreen.DEFAULT_FOREGROUND;
 	
 	public DrawableLayer layer = DrawableLayer.BACKGROUND;
 	
@@ -42,7 +40,7 @@ public class IsDrawable extends PooledComponent {
 	 */
 	public IsDrawable(String drawable, DrawableLayer layer) {
 		
-		this(drawable, AsciiPanel.white, layer);
+		this(drawable, AsciiScreen.DEFAULT_FOREGROUND, layer);
 	}
 	
 	/**
@@ -66,7 +64,7 @@ public class IsDrawable extends PooledComponent {
 	protected void reset() {
 		
 		this.drawable = "";
-		this.color = AsciiPanel.white;
+		this.color = AsciiScreen.DEFAULT_FOREGROUND;
 		this.layer = DrawableLayer.BACKGROUND;
 	}
 	
