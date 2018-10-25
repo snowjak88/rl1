@@ -3,7 +3,7 @@
  */
 package org.snowjak.rl1;
 
-import org.snowjak.rl1.config.Options;
+import org.snowjak.rl1.config.Config;
 
 import com.artemis.World;
 import com.badlogic.gdx.ApplicationListener;
@@ -57,11 +57,11 @@ public class Context {
 	}
 	
 	/**
-	 * The {@link Options} instance we're using for this execution.
+	 * The {@link Config} instance we're using for this execution.
 	 */
-	public Options opt() {
+	public Config config() {
 		
-		return app.options;
+		return app.config;
 	}
 	
 	/**

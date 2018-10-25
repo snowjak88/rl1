@@ -5,8 +5,6 @@ package org.snowjak.rl1.drawing.ascii;
 
 import java.util.function.BiFunction;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.snowjak.rl1.util.IntPair;
 
 import com.badlogic.gdx.Gdx;
@@ -23,8 +21,6 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
  *
  */
 public class AsciiScreen extends ScreenAdapter {
-	
-	private static final Logger LOG = LoggerFactory.getLogger(AsciiScreen.class);
 	
 	public static final Color DEFAULT_FOREGROUND = Color.LIGHT_GRAY;
 	public static final Color DEFAULT_BACKGROUND = Color.BLACK;

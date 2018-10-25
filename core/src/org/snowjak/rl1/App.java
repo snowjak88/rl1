@@ -9,7 +9,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.snowjak.rl1.config.Options;
+import org.snowjak.rl1.config.Config;
 import org.snowjak.rl1.drawing.ascii.AsciiScreen;
 import org.snowjak.rl1.map.Map;
 
@@ -43,22 +43,22 @@ public class App extends Game {
 	public final EventSystem events;
 	
 	/**
-	 * The {@link Options} we're running with.
+	 * The {@link Config} we're running with.
 	 */
-	public final Options options;
+	public final Config config;
 	
 	/**
 	 * The central {@link ExecutorService}.
 	 */
 	public final ListeningExecutorService executor;
 	
-	public App(Options options) {
+	public App(Config config) {
 		
 		super();
 		
 		Context.initialize(this);
 		
-		this.options = options;
+		this.config = config;
 		this.events = new EventSystem();
 		
 		//@formatter:off
@@ -71,13 +71,13 @@ public class App extends Game {
 		
 		this.odb = new World(worldConfig);
 		
-		if (options.getParallelism() <= 0) {
+		if (config.getParallelism() <= 0) {
 			LOG.info("Not using parallelism.");
 			executor = MoreExecutors.newDirectExecutorService();
 		} else {
-			LOG.info("Using parallelism level {}.", options.getParallelism());
+			LOG.info("Using parallelism level {}.", config.getParallelism());
 			executor = MoreExecutors.listeningDecorator(MoreExecutors.getExitingExecutorService(
-					(ThreadPoolExecutor) Executors.newFixedThreadPool(options.getParallelism())));
+					(ThreadPoolExecutor) Executors.newFixedThreadPool(config.getParallelism())));
 		}
 	}
 	
@@ -89,14 +89,14 @@ public class App extends Game {
 	@Override
 	public void create() {
 		
-		final Map map = new Map(options.getSeed(), options.getMapLargestFeature(), options.getMapFeaturePersistence(),
-				options.getMapLowestAltitude(), options.getMapHighestAltitude());
+		final Map map = new Map(config.getSeed(), config.getMapLargestFeature(), config.getMapFeaturePersistence(),
+				config.getMapLowestAltitude(), config.getMapHighestAltitude());
 		
-		final AsciiScreen ascii = new AsciiScreen(options.getScreenWidth(), options.getScreenHeight(),
-				options.getFont());
+		final AsciiScreen ascii = new AsciiScreen(config.getScreenWidth(), config.getScreenHeight(),
+				config.getFont());
 		
-		for (int x = 0; x < options.getScreenWidth(); x++)
-			for (int y = 0; y < options.getScreenHeight(); y++) {
+		for (int x = 0; x < config.getScreenWidth(); x++)
+			for (int y = 0; y < config.getScreenHeight(); y++) {
 				
 				final float height = (float) map.getHeightFrac(x, y);
 				final Color color = new Color(height, height, height, 1);
@@ -119,7 +119,7 @@ public class App extends Game {
 	public void dispose() {
 		
 		super.dispose();
-		this.options.dispose();
+		this.config.dispose();
 	}
 	
 }

@@ -19,16 +19,15 @@ import org.snowjak.rl1.util.Converters;
 import com.badlogic.gdx.utils.Disposable;
 
 import picocli.CommandLine.Command;
-import picocli.CommandLine.Option;
 
 /**
  * @author snowjak88
  *
  */
-@Command(mixinStandardHelpOptions = true)
-public class Options implements Disposable {
+@Command
+public class Config implements Disposable {
 	
-	private static final Logger LOG = LoggerFactory.getLogger(Options.class);
+	private static final Logger LOG = LoggerFactory.getLogger(Config.class);
 	
 	/**
 	 * Default config-file name
@@ -44,50 +43,35 @@ public class Options implements Disposable {
 	
 	private static final String KEY_SEED = "seed";
 	
-	private static final String KEY_MAP_LARGEST_FEATURE = "map.features.largest",
-			KEY_MAP_SMALLEST_FEATURE = "map.features.smallest";
+	private static final String KEY_MAP_LARGEST_FEATURE = "map.features.largest";
 	private static final String KEY_MAP_PERSISTENCE = "map.features.persistence";
 	private static final String KEY_MAP_LOWEST_ALTITUDE = "map.features.lowest",
 			KEY_MAP_HIGHEST_ALTITUDE = "map.features.highest";
 	
-	@Option(names = "--parallelism", paramLabel = "THREADS", description = "How many background workers are allowed.")
 	private int parallelism = Runtime.getRuntime().availableProcessors();
 	
-	@Option(names = "--font-file", paramLabel = "FONT-FILENAME", description = "Font-filename.")
 	private File fontFile = new File("fonts/cp437_12x12.png");
-	@Option(names = "--font-width", paramLabel = "FONT-WIDTH", description = "Font character-width. Must be appropriate to given font-filename.")
 	private Integer fontWidth = 12;
-	@Option(names = "--font-height", paramLabel = "FONT-HEIGHT", description = "Font character-height. Must be appropriate to given font-filename.")
 	private Integer fontHeight = 12;
 	
 	private transient AsciiFont asciiFont = null;
 	
-	@Option(names = "--screen-width", paramLabel = "WIDTH-IN-CHARS", description = "Screen width (#/chars).")
 	private int screenWidth = 80;
-	@Option(names = "--screen-height", paramLabel = "HEIGHT-IN-CHARS", description = "Screen height (#/chars).")
 	private int screenHeight = 25;
 	
-	@Option(names = "--seed", paramLabel = "SEED-VALUE", description = "Seed with which to initialize the random-number generator.")
 	private String seed = "";
 	
-	@Option(names = "--map-feature-size", paramLabel = "FEATURE-SIZE", description = "The map's largest features will be this many cells wide/long.")
 	private int mapLargestFeature = 1000;
-	
-	@Option(names = "--map-feature-persistence", paramLabel = "FRACTION", description = "The map's high-frequency components will be blurred by this fraction, where 0 is most-smooth and 1 is least-smooth.")
 	private float mapFeaturePersistence = 0.3f;
-	
-	@Option(names = "--map-lowest-altitude", paramLabel = "ALTITUDE", description = "The map's lowest altitude will equal this value")
 	private int mapLowestAltitude = 0;
-	
-	@Option(names = "--map-highest-altitude", paramLabel = "ALTITUDE", description = "The map's highest altitude will equal this value")
 	private int mapHighestAltitude = 300;
 	
 	/**
-	 * Construct a new {@link Options} instance. If {@link #CONFIG_FILE} exists and
+	 * Construct a new {@link Config} instance. If {@link #CONFIG_FILE} exists and
 	 * can be loaded, this will load the contents of {@link #CONFIG_FILE} into this
-	 * {@link Options} instance.
+	 * {@link Config} instance.
 	 */
-	public Options() {
+	public Config() {
 		
 		if (CONFIG_FILE.exists() && CONFIG_FILE.isFile()) {
 			try {
