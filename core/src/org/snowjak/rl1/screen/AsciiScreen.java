@@ -61,6 +61,12 @@ public class AsciiScreen extends ScreenAdapter {
 		if (allocateBuffers) {
 			this.buffer = new char[widthInChars][heightInChars];
 			this.colors = new Color[widthInChars][heightInChars][2];
+			
+			for (int x = 0; x < widthInChars; x++)
+				for (int y = 0; y < heightInChars; y++) {
+					this.colors[x][y][0] = DEFAULT_FOREGROUND;
+					this.colors[x][y][1] = DEFAULT_BACKGROUND;
+				}
 		} else {
 			this.buffer = null;
 			this.colors = null;
@@ -71,8 +77,6 @@ public class AsciiScreen extends ScreenAdapter {
 		this.cursor = new IntPair(0, 0);
 		
 		this.screenBatch = new SpriteBatch(Math.min(8191, widthInChars * heightInChars));
-		
-		clear();
 	}
 	
 	/*
@@ -249,18 +253,26 @@ public class AsciiScreen extends ScreenAdapter {
 	}
 	
 	/**
-	 * Clear the screen.
+	 * Clear the screen (filling it with the current background color).
 	 */
 	public void clear() {
 		
-		if (buffer == null && colors == null)
-			return;
+		clear(0, 0, width - 1, height - 1);
+	}
+	
+	/**
+	 * Clear a region on the screen (filling it with the current background color).
+	 * 
+	 * @param startX
+	 * @param startY
+	 * @param endX
+	 * @param endY
+	 */
+	public void clear(int startX, int startY, int endX, int endY) {
 		
-		for (int x = 0; x < width; x++)
-			for (int y = 0; y < height; y++) {
-				color();
+		for (int x = startX; x <= endX; x++)
+			for (int y = startY; y <= endY; y++)
 				put((char) 0, x, y);
-			}
 	}
 	
 	public boolean isOnScreen(int x, int y) {
@@ -366,6 +378,30 @@ public class AsciiScreen extends ScreenAdapter {
 	}
 	
 	/**
+	 * @return the foregroundColor
+	 */
+	public Color getForegroundColor() {
+		
+		return foregroundColor;
+	}
+	
+	/**
+	 * @return the backgroundColor
+	 */
+	public Color getBackgroundColor() {
+		
+		return backgroundColor;
+	}
+	
+	/**
+	 * @return the cursor
+	 */
+	public IntPair getCursor() {
+		
+		return cursor;
+	}
+	
+	/**
 	 * Construct an {@link AsciiScreenRegion} delegating to a specific region of
 	 * this {@link AsciiScreen}.
 	 * 
@@ -411,94 +447,20 @@ public class AsciiScreen extends ScreenAdapter {
 		/*
 		 * (non-Javadoc)
 		 * 
-		 * @see org.snowjak.rl1.drawing.ascii.AsciiScreen#put(char, int, int)
+		 * @see org.snowjak.rl1.screen.AsciiScreen#put(char)
 		 */
 		@Override
-		public void put(char c, int x, int y) {
+		public void put(char c) {
 			
-			if (isOnScreen(x, y))
-				screen.put(c, x + startX, y + startY);
-		}
-		
-		/*
-		 * (non-Javadoc)
-		 * 
-		 * @see org.snowjak.rl1.drawing.ascii.AsciiScreen#clear()
-		 */
-		@Override
-		public void clear() {
+			final Color prevForeground = screen.getForegroundColor(), prevBackground = screen.getBackgroundColor();
+			final IntPair prevCursor = screen.getCursor();
+			screen.color(getForegroundColor(), getBackgroundColor());
 			
-			super.clear();
-		}
-		
-		/*
-		 * (non-Javadoc)
-		 * 
-		 * @see org.snowjak.rl1.drawing.ascii.AsciiScreen#color()
-		 */
-		@Override
-		public void color() {
+			screen.cursor(getCursor().getFirst() + startX, getCursor().getSecond() + startY);
+			screen.put(c);
 			
-			screen.color();
-		}
-		
-		/*
-		 * (non-Javadoc)
-		 * 
-		 * @see
-		 * org.snowjak.rl1.drawing.ascii.AsciiScreen#color(com.badlogic.gdx.graphics.
-		 * Color, com.badlogic.gdx.graphics.Color)
-		 */
-		@Override
-		public void color(Color foreground, Color background) {
-			
-			screen.color(foreground, background);
-		}
-		
-		/*
-		 * (non-Javadoc)
-		 * 
-		 * @see org.snowjak.rl1.drawing.ascii.AsciiScreen#foreground()
-		 */
-		@Override
-		public void foreground() {
-			
-			screen.foreground();
-		}
-		
-		/*
-		 * (non-Javadoc)
-		 * 
-		 * @see org.snowjak.rl1.drawing.ascii.AsciiScreen#foreground(com.badlogic.gdx.
-		 * graphics.Color)
-		 */
-		@Override
-		public void foreground(Color color) {
-			
-			screen.foreground(color);
-		}
-		
-		/*
-		 * (non-Javadoc)
-		 * 
-		 * @see org.snowjak.rl1.drawing.ascii.AsciiScreen#background()
-		 */
-		@Override
-		public void background() {
-			
-			screen.background();
-		}
-		
-		/*
-		 * (non-Javadoc)
-		 * 
-		 * @see org.snowjak.rl1.drawing.ascii.AsciiScreen#background(com.badlogic.gdx.
-		 * graphics.Color)
-		 */
-		@Override
-		public void background(Color color) {
-			
-			screen.background(color);
+			screen.cursor(prevCursor.getFirst(), prevCursor.getSecond());
+			screen.color(prevForeground, prevBackground);
 		}
 		
 		/*

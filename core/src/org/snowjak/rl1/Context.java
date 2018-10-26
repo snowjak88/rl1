@@ -3,6 +3,7 @@
  */
 package org.snowjak.rl1;
 
+import org.snowjak.rl1.display.MainDisplay;
 import org.snowjak.rl1.util.PriorityInputMultiplexer;
 
 import com.artemis.World;
@@ -100,6 +101,16 @@ public class Context {
 	public ListeningExecutorService exe() {
 		
 		return app.executor;
+	}
+	
+	/**
+	 * The {@link MainDisplay} presented on-screen.
+	 * 
+	 * @return
+	 */
+	public MainDisplay display() {
+		
+		return app.display;
 	}
 	
 	private Context(App app) {

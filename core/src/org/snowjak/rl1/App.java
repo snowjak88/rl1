@@ -9,9 +9,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.snowjak.rl1.display.MapDisplay;
-import org.snowjak.rl1.map.Map;
-import org.snowjak.rl1.screen.AsciiScreen;
+import org.snowjak.rl1.display.MainDisplay;
 import org.snowjak.rl1.util.PriorityInputMultiplexer;
 
 import com.artemis.World;
@@ -47,6 +45,11 @@ public class App extends Game {
 	 * The {@link AppConfig} we're running with.
 	 */
 	public final AppConfig appConfig;
+	
+	/**
+	 * The {@link MainDisplay} presented on-screen.
+	 */
+	public MainDisplay display;
 	
 	/**
 	 * The central {@link ExecutorService}.
@@ -96,12 +99,9 @@ public class App extends Game {
 		
 		Gdx.input.setInputProcessor(input);
 		
-		final Map map = new Map(appConfig);
+		display = new MainDisplay();
 		
-		final MapDisplay mapDisplay = new MapDisplay(map,
-				new AsciiScreen(appConfig.getScreenWidth(), appConfig.getScreenHeight(), appConfig.getFont()));
-		
-		setScreen(mapDisplay);
+		setScreen(display);
 	}
 	
 	/*

@@ -21,15 +21,31 @@ public class MapDisplay extends AbstractDisplay {
 	
 	private final MapDisplayInputProcessor inputProcessor;
 	private final Map map;
-	private int scrollX = 0, scrollY = 0;
-	private int continuousScrollX = 0, continuousScrollY = 0;
+	
+	/**
+	 * The MapDisplay is currently scrolled across the {@link Map} to this X-point.
+	 */
+	public int scrollX = 0;
+	/**
+	 * The MapDisplay is currently scrolled across the {@link Map} to this Y-point.
+	 */
+	public int scrollY = 0;
+	
+	/**
+	 * The MapDisplay will scroll every frame in the X-direction by this amount.
+	 */
+	private int continuousScrollX = 0;
+	/**
+	 * The MapDisplay will scroll every frame in the Y-direction by this amount.
+	 */
+	private int continuousScrollY = 0;
 	
 	/**
 	 * @param mainScreen
 	 */
 	public MapDisplay(Map map, AsciiScreen screen) {
 		
-		super(screen, null, false);
+		super(screen, null, true, BorderType.SINGLE_LINE);
 		this.inputProcessor = new MapDisplayInputProcessor(this);
 		this.map = map;
 		
@@ -48,10 +64,13 @@ public class MapDisplay extends AbstractDisplay {
 		
 		scroll(continuousScrollX, continuousScrollY);
 		
+		final int halfWidth = screen.getWidthInChars() / 2;
+		final int halfHeight = screen.getHeightInChars() / 2;
+		
 		for (int x = 0; x < screen.getWidthInChars(); x++)
 			for (int y = 0; y < screen.getHeightInChars(); y++) {
 				
-				final float height = (float) map.getHeightFrac(x + scrollX, y + scrollY);
+				final float height = (float) map.getHeightFrac(x + scrollX - halfWidth, y + scrollY - halfHeight);
 				screen.foreground(new Color(height, height, height, 1));
 				screen.put((char) 219, x, y);
 				screen.foreground();
