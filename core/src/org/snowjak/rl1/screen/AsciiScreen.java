@@ -1,10 +1,9 @@
 /**
  * 
  */
-package org.snowjak.rl1.drawing.ascii;
+package org.snowjak.rl1.screen;
 
-import java.util.function.BiFunction;
-
+import org.snowjak.rl1.drawing.ascii.AsciiFont;
 import org.snowjak.rl1.util.IntPair;
 
 import com.badlogic.gdx.Gdx;
@@ -25,6 +24,7 @@ public class AsciiScreen extends ScreenAdapter {
 	public static final Color DEFAULT_FOREGROUND = Color.LIGHT_GRAY;
 	public static final Color DEFAULT_BACKGROUND = Color.BLACK;
 	
+	private final int width, height;
 	private final char[][] buffer;
 	private final Color[][][] colors;
 	
@@ -34,9 +34,8 @@ public class AsciiScreen extends ScreenAdapter {
 	private Color foregroundColor = DEFAULT_FOREGROUND, backgroundColor = DEFAULT_BACKGROUND;
 	
 	private IntPair cursor;
-	private CursorMode cursorMode;
 	
-	private float scale = 1, offsetX = 0, offsetY = 0;
+	private float renderScale = 1, renderOffsetX = 0, renderOffsetY = 0;
 	
 	/**
 	 * Construct a new {@link AsciiScreen} with {@code widthInChars} columns and
@@ -48,21 +47,28 @@ public class AsciiScreen extends ScreenAdapter {
 	 */
 	public AsciiScreen(int widthInChars, int heightInChars, AsciiFont font) {
 		
-		this(widthInChars, heightInChars, font, CursorMode.NOP);
+		this(widthInChars, heightInChars, font, true);
 	}
 	
-	public AsciiScreen(int widthInChars, int heightInChars, AsciiFont font, CursorMode cursorMode) {
+	protected AsciiScreen(int widthInChars, int heightInChars, AsciiFont font, boolean allocateBuffers) {
 		
 		assert (widthInChars > 0);
 		assert (heightInChars > 0);
 		assert (font != null);
-		assert (cursorMode != null);
 		
 		this.font = font;
-		this.buffer = new char[widthInChars][heightInChars];
-		this.colors = new Color[widthInChars][heightInChars][2];
+		
+		if (allocateBuffers) {
+			this.buffer = new char[widthInChars][heightInChars];
+			this.colors = new Color[widthInChars][heightInChars][2];
+		} else {
+			this.buffer = null;
+			this.colors = null;
+		}
+		
+		this.width = widthInChars;
+		this.height = heightInChars;
 		this.cursor = new IntPair(0, 0);
-		this.cursorMode = cursorMode;
 		
 		this.screenBatch = new SpriteBatch(Math.min(8191, widthInChars * heightInChars));
 		
@@ -83,23 +89,23 @@ public class AsciiScreen extends ScreenAdapter {
 		screenBatch.begin();
 		
 		int i = 0;
-		for (int x = 0; x < getWidthInChars(); x++)
-			for (int y = 0; y < getHeightInChars(); y++) {
+		for (int x = 0; x < width; x++)
+			for (int y = 0; y < height; y++) {
 				
 				final TextureRegion charTex = font.getChar(get(x, y));
 				
-				final float screenX = ((float) x * (float) font.getCharWidth() * scale) + offsetX;
-				final float screenY = ((float) (getHeightInChars() - y - 1) * (float) font.getCharHeight() * scale)
-						+ offsetY;
+				final float screenX = ((float) x * (float) font.getCharWidth() * renderScale) + renderOffsetX;
+				final float screenY = ((float) (getHeightInChars() - y - 1) * (float) font.getCharHeight()
+						* renderScale) + renderOffsetY;
 				
 				screenBatch.setColor(colors[x][y][1]);
-				screenBatch.draw(fillTex, screenX, screenY, (float) font.getCharWidth() * scale,
-						(float) font.getCharHeight() * scale);
+				screenBatch.draw(fillTex, screenX, screenY, (float) font.getCharWidth() * renderScale,
+						(float) font.getCharHeight() * renderScale);
 				
 				screenBatch.enableBlending();
 				screenBatch.setColor(colors[x][y][0]);
-				screenBatch.draw(charTex, screenX, screenY, (float) font.getCharWidth() * scale,
-						(float) font.getCharHeight() * scale);
+				screenBatch.draw(charTex, screenX, screenY, (float) font.getCharWidth() * renderScale,
+						(float) font.getCharHeight() * renderScale);
 				screenBatch.disableBlending();
 				
 				i += 2;
@@ -135,20 +141,20 @@ public class AsciiScreen extends ScreenAdapter {
 		
 		screenBatch.getProjectionMatrix().setToOrtho2D(0, 0, width, height);
 		
-		final float textSizeX = (float) getWidthInChars() * (float) font.getCharWidth();
-		final float textSizeY = (float) getHeightInChars() * (float) font.getCharHeight();
+		final float textSizeX = (float) this.width * (float) font.getCharWidth();
+		final float textSizeY = (float) this.height * (float) font.getCharHeight();
 		
 		final float scaleX = (float) width / textSizeX;
 		final float scaleY = (float) height / textSizeY;
 		
 		if (scaleX <= scaleY) {
-			this.scale = scaleX;
-			this.offsetX = 0;
-			this.offsetY = ((float) height - textSizeY * scale) / 2f;
+			this.renderScale = scaleX;
+			this.renderOffsetX = 0;
+			this.renderOffsetY = ((float) height - textSizeY * renderScale) / 2f;
 		} else {
-			this.scale = scaleY;
-			this.offsetX = ((float) width - textSizeX * scale) / 2f;
-			this.offsetY = 0;
+			this.renderScale = scaleY;
+			this.renderOffsetX = ((float) width - textSizeX * renderScale) / 2f;
+			this.renderOffsetY = 0;
 		}
 	}
 	
@@ -209,6 +215,9 @@ public class AsciiScreen extends ScreenAdapter {
 		if (!isOnScreen(cursor.getFirst(), cursor.getSecond()))
 			return;
 		
+		if (buffer == null && colors == null)
+			return;
+		
 		buffer[cursor.getFirst()][cursor.getSecond()] = c;
 		colors[cursor.getFirst()][cursor.getSecond()][0] = foregroundColor;
 		colors[cursor.getFirst()][cursor.getSecond()][1] = backgroundColor;
@@ -229,11 +238,12 @@ public class AsciiScreen extends ScreenAdapter {
 	 * 
 	 * @param x
 	 * @param y
-	 * @return
-	 * @throws ArrayIndexOutOfBoundsException
-	 *             if {@code (x,y)} is outside the screen
+	 * @return {@code char(0)} if the given location is outside the screen
 	 */
 	public char get(int x, int y) {
+		
+		if (buffer == null || !isOnScreen(x, y))
+			return 0;
 		
 		return buffer[x][y];
 	}
@@ -243,17 +253,19 @@ public class AsciiScreen extends ScreenAdapter {
 	 */
 	public void clear() {
 		
-		for (int x = 0; x < getWidthInChars(); x++)
-			for (int y = 0; y < getHeightInChars(); y++) {
-				buffer[x][y] = 0;
-				colors[x][y][0] = DEFAULT_FOREGROUND;
-				colors[x][y][1] = DEFAULT_BACKGROUND;
+		if (buffer == null && colors == null)
+			return;
+		
+		for (int x = 0; x < width; x++)
+			for (int y = 0; y < height; y++) {
+				color();
+				put((char) 0, x, y);
 			}
 	}
 	
 	public boolean isOnScreen(int x, int y) {
 		
-		return ((x >= 0 && x < getWidthInChars()) && (y >= 0 && y < getHeightInChars()));
+		return ((x >= 0 && x < width) && (y >= 0 && y < height));
 	}
 	
 	/**
@@ -317,24 +329,7 @@ public class AsciiScreen extends ScreenAdapter {
 	 */
 	public void cursor(int x, int y) {
 		
-		this.cursor = cursorMode.operate(this, new IntPair(x, y));
-	}
-	
-	/**
-	 * @return the cursorMode
-	 */
-	public CursorMode getCursorMode() {
-		
-		return cursorMode;
-	}
-	
-	/**
-	 * @param cursorMode
-	 *            the cursorMode to set
-	 */
-	public void setCursorMode(CursorMode cursorMode) {
-		
-		this.cursorMode = cursorMode;
+		this.cursor = new IntPair(x, y);
 	}
 	
 	/**
@@ -344,107 +339,193 @@ public class AsciiScreen extends ScreenAdapter {
 	public void advanceCursor() {
 		
 		cursor.setFirst(cursor.getFirst() + 1);
-		if (cursor.getFirst() >= buffer.length) {
+		if (cursor.getFirst() >= width) {
 			cursor.setFirst(0);
 			cursor.setSecond(cursor.getSecond() + 1);
-			if (cursor.getSecond() >= buffer[cursor.getFirst()].length)
+			if (cursor.getSecond() >= height)
 				cursor.setSecond(0);
 		}
 	}
 	
 	public int getWidthInChars() {
 		
-		return buffer.length;
+		return width;
 	}
 	
 	public int getHeightInChars() {
 		
-		return buffer[0].length;
+		return height;
 	}
 	
 	/**
-	 * Denotes how the {@link AsciiScreen} cursor behaves when it is moved past the
-	 * screen's bounds.
+	 * @return
+	 */
+	public AsciiFont getFont() {
+		
+		return font;
+	}
+	
+	/**
+	 * Construct an {@link AsciiScreenRegion} delegating to a specific region of
+	 * this {@link AsciiScreen}.
+	 * 
+	 * @param startX
+	 * @param startY
+	 * @param endX
+	 * @param endY
+	 * @return
+	 */
+	public AsciiScreenRegion getRegion(int startX, int startY, int endX, int endY) {
+		
+		return new AsciiScreenRegion(this, startX, startY, endX, endY);
+	}
+	
+	/**
+	 * Gives access to a specific region of an existing AsciiScreen. Writes made to
+	 * this region are clipped to the specified region
+	 * <code>(startX,startY) - (endX,endY)</code>.
 	 * 
 	 * @author snowjak88
 	 *
 	 */
-	public enum CursorMode {
-		/**
-		 * The cursor will be scrolled to the first valid screen location.
-		 * Column-wrapping will be resolved to the next/previous row. Row-wrapping will
-		 * be resolved by scrolling up/down.
-		 */
-		WRAP((as, p) -> {
-			IntPair i = p;
-			while (i.getFirst() < 0 || i.getFirst() >= as.getWidthInChars() || i.getSecond() < 0
-					|| i.getSecond() >= as.getHeightInChars()) {
-				if (i.getSecond() < 0)
-					i = new IntPair(i.getFirst() - 1, as.getHeightInChars() - 1);
-				else if (i.getSecond() >= as.getHeightInChars())
-					i = new IntPair(i.getFirst() + 1, 0);
-				else if (i.getFirst() < 0)
-					i = new IntPair(i.getFirst() + as.getWidthInChars(), i.getSecond());
-				else if (i.getFirst() >= as.getWidthInChars())
-					i = new IntPair(i.getFirst() - as.getWidthInChars(), i.getSecond());
-			}
-			return i;
-		}),
-		/**
-		 * The cursor will be moved to lie within {@code (0,0) - (w,h)} using the
-		 * modulus operator.
-		 */
-		MOD((as, p) -> {
-			int w = p.getFirst(), h = p.getSecond();
-			while (w < 0)
-				w += as.getWidthInChars();
-			while (h < 0)
-				h += as.getHeightInChars();
-			return new IntPair(w % as.getWidthInChars(), h % as.getHeightInChars());
-		}),
-		/**
-		 * The cursor will move to the closest row/column on the screen to the directed
-		 * position
-		 */
-		CLIP((as, p) -> new IntPair(Math.min(Math.max(p.getFirst(), 0), as.getWidthInChars() - 1),
-				Math.min(Math.max(p.getSecond(), 0), as.getHeightInChars() - 1))),
-		/**
-		 * The cursor is allowed to be placed wherever.
-		 */
-		NOP((as, p) -> p),
-		/**
-		 * The cursor will throw an {@link ArrayIndexOutOfBoundsException} when directed
-		 * to move outside the screen's limits
-		 */
-		EXCEPTION((as, p) -> {
-			if (p.getFirst() < 0 || p.getSecond() < 0 || p.getFirst() >= as.getWidthInChars()
-					|| p.getSecond() >= as.getHeightInChars())
-				throw new ArrayIndexOutOfBoundsException();
-			return p;
-		});
+	public static class AsciiScreenRegion extends AsciiScreen {
 		
-		private final BiFunction<AsciiScreen, IntPair, IntPair> f;
+		private final AsciiScreen screen;
+		private final int startX, startY;
 		
 		/**
-		 * @param f
+		 * @param screen
+		 * @param startX
+		 * @param startY
+		 * @param endX
+		 * @param endY
 		 */
-		private CursorMode(BiFunction<AsciiScreen, IntPair, IntPair> f) {
+		public AsciiScreenRegion(AsciiScreen screen, int startX, int startY, int endX, int endY) {
 			
-			this.f = f;
+			super(endX - startX + 1, endY - startY + 1, screen.getFont(), false);
+			this.screen = screen;
+			this.startX = startX;
+			this.startY = startY;
 		}
 		
-		/**
-		 * Given the current {@link AsciiScreen} and the desired {@code position},
-		 * return the resulting position after applying this CursorMode's behavior.
+		/*
+		 * (non-Javadoc)
 		 * 
-		 * @param ascii
-		 * @param position
-		 * @return
+		 * @see org.snowjak.rl1.drawing.ascii.AsciiScreen#put(char, int, int)
 		 */
-		public IntPair operate(AsciiScreen ascii, IntPair position) {
+		@Override
+		public void put(char c, int x, int y) {
 			
-			return f.apply(ascii, position);
+			if (isOnScreen(x, y))
+				screen.put(c, x + startX, y + startY);
 		}
+		
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see org.snowjak.rl1.drawing.ascii.AsciiScreen#clear()
+		 */
+		@Override
+		public void clear() {
+			
+			super.clear();
+		}
+		
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see org.snowjak.rl1.drawing.ascii.AsciiScreen#color()
+		 */
+		@Override
+		public void color() {
+			
+			screen.color();
+		}
+		
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see
+		 * org.snowjak.rl1.drawing.ascii.AsciiScreen#color(com.badlogic.gdx.graphics.
+		 * Color, com.badlogic.gdx.graphics.Color)
+		 */
+		@Override
+		public void color(Color foreground, Color background) {
+			
+			screen.color(foreground, background);
+		}
+		
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see org.snowjak.rl1.drawing.ascii.AsciiScreen#foreground()
+		 */
+		@Override
+		public void foreground() {
+			
+			screen.foreground();
+		}
+		
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see org.snowjak.rl1.drawing.ascii.AsciiScreen#foreground(com.badlogic.gdx.
+		 * graphics.Color)
+		 */
+		@Override
+		public void foreground(Color color) {
+			
+			screen.foreground(color);
+		}
+		
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see org.snowjak.rl1.drawing.ascii.AsciiScreen#background()
+		 */
+		@Override
+		public void background() {
+			
+			screen.background();
+		}
+		
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see org.snowjak.rl1.drawing.ascii.AsciiScreen#background(com.badlogic.gdx.
+		 * graphics.Color)
+		 */
+		@Override
+		public void background(Color color) {
+			
+			screen.background(color);
+		}
+		
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see org.snowjak.rl1.drawing.ascii.AsciiScreen#get(int, int)
+		 */
+		@Override
+		public char get(int x, int y) {
+			
+			if (!isOnScreen(x, y))
+				return 0;
+			
+			return screen.get(x + startX, y + startY);
+		}
+		
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see org.snowjak.rl1.drawing.ascii.AsciiScreen#render(float)
+		 */
+		@Override
+		public void render(float delta) {
+			
+			screen.render(delta);
+		}
+		
 	}
 	
 }

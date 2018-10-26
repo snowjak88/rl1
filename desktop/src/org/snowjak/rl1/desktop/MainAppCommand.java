@@ -6,7 +6,8 @@ package org.snowjak.rl1.desktop;
 import java.io.File;
 
 import org.snowjak.rl1.App;
-import org.snowjak.rl1.config.Config;
+import org.snowjak.rl1.AppConfig;
+import org.snowjak.rl1.map.MapConfig;
 
 import com.badlogic.gdx.backends.lwjgl.LwjglApplication;
 import com.badlogic.gdx.backends.lwjgl.LwjglApplicationConfiguration;
@@ -15,7 +16,7 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
 
-@Command(mixinStandardHelpOptions = true, subcommands = { ExportMapCommand.class })
+@Command(mixinStandardHelpOptions = true, subcommands = { ExportMapCommand.class }, showDefaultValues = true)
 public class MainAppCommand implements Runnable {
 	
 	@Mixin
@@ -32,40 +33,42 @@ public class MainAppCommand implements Runnable {
 	@Override
 	public void run() {
 		
-		final Config config = new Config();
+		final AppConfig appConfig = new AppConfig();
+		final MapConfig mapConfig = new MapConfig();
 		
-		config.setFontFile(options.fontFile);
-		config.setFontWidth(options.fontWidth);
-		config.setFontHeight(options.fontHeight);
+		appConfig.setFontFile(options.fontFile);
+		appConfig.setFontWidth(options.fontWidth);
+		appConfig.setFontHeight(options.fontHeight);
+		appConfig.setScreenWidth(options.screenWidth);
+		appConfig.setScreenHeight(options.screenHeight);
 		
-		config.setScreenWidth(options.screenWidth);
-		config.setScreenHeight(options.screenHeight);
+		appConfig.setSeed(standardOptions.getSeed());
+		appConfig.setParallelism(standardOptions.getParallelism());
 		
-		config.setSeed(standardOptions.getSeed());
-		config.setParallelism(standardOptions.getParallelism());
-		config.setMapLargestFeature(standardOptions.getMapLargestFeature());
-		config.setMapFeaturePersistence(standardOptions.getMapFeaturePersistence());
-		config.setMapLowestAltitude(standardOptions.getMapLowestAltitude());
-		config.setMapHighestAltitude(standardOptions.getMapHighestAltitude());
+		appConfig.setMapConfig(mapConfig);
+		mapConfig.setLargestFeature(standardOptions.getMapLargestFeature());
+		mapConfig.setPersistence(standardOptions.getMapFeaturePersistence());
+		mapConfig.setLowAltitude(standardOptions.getMapLowestAltitude());
+		mapConfig.setHighAltitude(standardOptions.getMapHighestAltitude());
 		
-		new LwjglApplication(new App(config), new LwjglApplicationConfiguration());
+		new LwjglApplication(new App(appConfig), new LwjglApplicationConfiguration());
 	}
 	
 	public static class Options {
 		
-		@Option(names = "--font-file", paramLabel = "FONT-FILENAME", description = "Font-filename.")
+		@Option(names = "--font-file", paramLabel = "FONT-FILENAME", description = "Font-filename.", defaultValue = "fonts/cp437_12x12.png")
 		private File fontFile = new File("fonts/cp437_12x12.png");
 		
-		@Option(names = "--font-width", paramLabel = "FONT-WIDTH", description = "Font character-width. Must be appropriate to given font-filename.")
+		@Option(names = "--font-width", paramLabel = "FONT-WIDTH", description = "Font character-width. Must be appropriate to given font-filename.", defaultValue = "12")
 		private Integer fontWidth = 12;
 		
-		@Option(names = "--font-height", paramLabel = "FONT-HEIGHT", description = "Font character-height. Must be appropriate to given font-filename.")
+		@Option(names = "--font-height", paramLabel = "FONT-HEIGHT", description = "Font character-height. Must be appropriate to given font-filename.", defaultValue = "12")
 		private Integer fontHeight = 12;
 		
-		@Option(names = "--screen-width", paramLabel = "WIDTH-IN-CHARS", description = "Screen width (#/chars).")
+		@Option(names = "--screen-width", paramLabel = "WIDTH-IN-CHARS", description = "Screen width (#/chars).", defaultValue = "80")
 		private int screenWidth = 80;
 		
-		@Option(names = "--screen-height", paramLabel = "HEIGHT-IN-CHARS", description = "Screen height (#/chars).")
+		@Option(names = "--screen-height", paramLabel = "HEIGHT-IN-CHARS", description = "Screen height (#/chars).", defaultValue = "25")
 		private int screenHeight = 25;
 		
 	}

@@ -9,15 +9,16 @@ import java.util.concurrent.ThreadPoolExecutor;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.snowjak.rl1.config.Config;
-import org.snowjak.rl1.drawing.ascii.AsciiScreen;
+import org.snowjak.rl1.display.MapDisplay;
 import org.snowjak.rl1.map.Map;
+import org.snowjak.rl1.screen.AsciiScreen;
+import org.snowjak.rl1.util.PriorityInputMultiplexer;
 
 import com.artemis.World;
 import com.artemis.WorldConfiguration;
 import com.artemis.WorldConfigurationBuilder;
 import com.badlogic.gdx.Game;
-import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.Gdx;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
@@ -43,23 +44,27 @@ public class App extends Game {
 	public final EventSystem events;
 	
 	/**
-	 * The {@link Config} we're running with.
+	 * The {@link AppConfig} we're running with.
 	 */
-	public final Config config;
+	public final AppConfig appConfig;
 	
 	/**
 	 * The central {@link ExecutorService}.
 	 */
 	public final ListeningExecutorService executor;
 	
-	public App(Config config) {
+	public final PriorityInputMultiplexer input;
+	
+	public App(AppConfig appConfig) {
 		
 		super();
 		
+		appConfig.loadFromFile();
 		Context.initialize(this);
 		
-		this.config = config;
+		this.appConfig = appConfig;
 		this.events = new EventSystem();
+		this.input = new PriorityInputMultiplexer();
 		
 		//@formatter:off
 		final WorldConfiguration worldConfig =
@@ -71,13 +76,13 @@ public class App extends Game {
 		
 		this.odb = new World(worldConfig);
 		
-		if (config.getParallelism() <= 0) {
+		if (appConfig.getParallelism() <= 0) {
 			LOG.info("Not using parallelism.");
 			executor = MoreExecutors.newDirectExecutorService();
 		} else {
-			LOG.info("Using parallelism level {}.", config.getParallelism());
+			LOG.info("Using parallelism level {}.", appConfig.getParallelism());
 			executor = MoreExecutors.listeningDecorator(MoreExecutors.getExitingExecutorService(
-					(ThreadPoolExecutor) Executors.newFixedThreadPool(config.getParallelism())));
+					(ThreadPoolExecutor) Executors.newFixedThreadPool(appConfig.getParallelism())));
 		}
 	}
 	
@@ -89,25 +94,14 @@ public class App extends Game {
 	@Override
 	public void create() {
 		
-		final Map map = new Map(config.getSeed(), config.getMapLargestFeature(), config.getMapFeaturePersistence(),
-				config.getMapLowestAltitude(), config.getMapHighestAltitude());
+		Gdx.input.setInputProcessor(input);
 		
-		final AsciiScreen ascii = new AsciiScreen(config.getScreenWidth(), config.getScreenHeight(),
-				config.getFont());
+		final Map map = new Map(appConfig);
 		
-		for (int x = 0; x < config.getScreenWidth(); x++)
-			for (int y = 0; y < config.getScreenHeight(); y++) {
-				
-				final float height = (float) map.getHeightFrac(x, y);
-				final Color color = new Color(height, height, height, 1);
-				
-				ascii.foreground(color);
-				ascii.put((char) 219, x, y);
-				ascii.foreground();
-				
-			}
+		final MapDisplay mapDisplay = new MapDisplay(map,
+				new AsciiScreen(appConfig.getScreenWidth(), appConfig.getScreenHeight(), appConfig.getFont()));
 		
-		setScreen(ascii);
+		setScreen(mapDisplay);
 	}
 	
 	/*
@@ -119,7 +113,7 @@ public class App extends Game {
 	public void dispose() {
 		
 		super.dispose();
-		this.config.dispose();
+		this.appConfig.dispose();
 	}
 	
 }

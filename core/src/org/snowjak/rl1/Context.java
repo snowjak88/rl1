@@ -3,11 +3,12 @@
  */
 package org.snowjak.rl1;
 
-import org.snowjak.rl1.config.Config;
+import org.snowjak.rl1.util.PriorityInputMultiplexer;
 
 import com.artemis.World;
 import com.badlogic.gdx.ApplicationListener;
 import com.badlogic.gdx.Game;
+import com.badlogic.gdx.InputProcessor;
 import com.google.common.util.concurrent.ListeningExecutorService;
 
 import net.mostlyoriginal.api.event.common.Event;
@@ -57,11 +58,11 @@ public class Context {
 	}
 	
 	/**
-	 * The {@link Config} instance we're using for this execution.
+	 * The {@link AppConfig} instance we're using for this execution.
 	 */
-	public Config config() {
+	public AppConfig appConfig() {
 		
-		return app.config;
+		return app.appConfig;
 	}
 	
 	/**
@@ -78,6 +79,17 @@ public class Context {
 	public EventSystem es() {
 		
 		return app.events;
+	}
+	
+	/**
+	 * The {@link PriorityInputMultiplexer} on which components can register
+	 * {@link InputProcessor}s.
+	 * 
+	 * @return
+	 */
+	public PriorityInputMultiplexer in() {
+		
+		return app.input;
 	}
 	
 	/**

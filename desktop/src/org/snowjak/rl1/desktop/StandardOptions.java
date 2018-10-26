@@ -3,6 +3,8 @@
  */
 package org.snowjak.rl1.desktop;
 
+import java.util.UUID;
+
 import picocli.CommandLine.Option;
 
 /**
@@ -15,13 +17,13 @@ public class StandardOptions {
 	private int parallelism = Runtime.getRuntime().availableProcessors();
 	
 	@Option(names = "--seed", paramLabel = "SEED-VALUE", description = "Seed with which to initialize the random-number generator.")
-	private String seed = "";
+	private String seed = UUID.randomUUID().toString();
 	
 	@Option(names = "--map-feature-size", paramLabel = "FEATURE-SIZE", description = "The map's largest features will be this many cells wide/long.")
-	private int mapLargestFeature = 1000;
+	private int mapLargestFeature = 128;
 	
 	@Option(names = "--map-feature-persistence", paramLabel = "FRACTION", description = "The map's high-frequency components will be blurred by this fraction, where 0 is most-smooth and 1 is least-smooth.")
-	private float mapFeaturePersistence = 0.3f;
+	private float mapFeaturePersistence = 0.6f;
 	
 	@Option(names = "--map-lowest-altitude", paramLabel = "ALTITUDE", description = "The map's lowest altitude will equal this value")
 	private int mapLowestAltitude = 0;

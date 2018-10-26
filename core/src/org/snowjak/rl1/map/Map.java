@@ -3,6 +3,9 @@
  */
 package org.snowjak.rl1.map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.snowjak.rl1.AppConfig;
 import org.snowjak.rl1.util.SimplexNoise.SimplexOctave;
 
 /**
@@ -11,18 +14,24 @@ import org.snowjak.rl1.util.SimplexNoise.SimplexOctave;
  */
 public class Map {
 	
-	private final int lowAltitude, highAltitude;
+	private static final Logger LOG = LoggerFactory.getLogger(Map.class);
+	
+	private final MapConfig mapConfig;
 	private final SimplexOctave heightNoise;
 	
 	/**
 	 * 
 	 * @param seed
 	 */
-	public Map(String seed, int largestFeature, float persistence, int lowAltitude, int highAltitude) {
+	public Map(AppConfig config) {
 		
-		this.lowAltitude = lowAltitude;
-		this.highAltitude = highAltitude;
-		this.heightNoise = new SimplexOctave(seed.hashCode(), (double) largestFeature, persistence);
+		this.mapConfig = config.getMapConfig();
+		
+		LOG.info("Map: seed=\"{}\", largest-feature={}, persistence={}", config.getSeed(),
+				mapConfig.getLargestFeature(), mapConfig.getPersistence());
+		
+		this.heightNoise = new SimplexOctave(config.getSeed().hashCode(), (double) mapConfig.getLargestFeature(),
+				mapConfig.getPersistence());
 	}
 	
 	/**
@@ -35,7 +44,7 @@ public class Map {
 	 */
 	public double getHeight(double x, double y) {
 		
-		final double low = (double) lowAltitude, high = (double) highAltitude;
+		final double low = (double) mapConfig.getLowAltitude(), high = (double) mapConfig.getHighAltitude();
 		return getHeightFrac(x, y) * (high - low) + low;
 	}
 	
@@ -50,21 +59,4 @@ public class Map {
 		
 		return (heightNoise.noise(x, y) + 1d) / 2d;
 	}
-	
-	/**
-	 * @return the lowAltitude
-	 */
-	public int getLowAltitude() {
-		
-		return lowAltitude;
-	}
-	
-	/**
-	 * @return the highAltitude
-	 */
-	public int getHighAltitude() {
-		
-		return highAltitude;
-	}
-	
 }

@@ -14,8 +14,9 @@ import javax.imageio.ImageIO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snowjak.rl1.App;
-import org.snowjak.rl1.config.Config;
+import org.snowjak.rl1.AppConfig;
 import org.snowjak.rl1.map.Map;
+import org.snowjak.rl1.map.MapConfig;
 
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
@@ -46,19 +47,21 @@ public class ExportMapCommand implements Runnable {
 	@Override
 	public void run() {
 		
-		final Config config = new Config();
+		final AppConfig appConfig = new AppConfig();
+		final MapConfig mapConfig = new MapConfig();
 		
-		config.setSeed(standardOptions.getSeed());
-		config.setParallelism(standardOptions.getParallelism());
-		config.setMapLargestFeature(standardOptions.getMapLargestFeature());
-		config.setMapFeaturePersistence(standardOptions.getMapFeaturePersistence());
-		config.setMapLowestAltitude(standardOptions.getMapLowestAltitude());
-		config.setMapHighestAltitude(standardOptions.getMapHighestAltitude());
+		appConfig.setSeed(standardOptions.getSeed());
+		appConfig.setParallelism(standardOptions.getParallelism());
+		appConfig.setMapConfig(mapConfig);
 		
-		new App(config);
+		mapConfig.setLargestFeature(standardOptions.getMapLargestFeature());
+		mapConfig.setPersistence(standardOptions.getMapFeaturePersistence());
+		mapConfig.setLowAltitude(standardOptions.getMapLowestAltitude());
+		mapConfig.setHighAltitude(standardOptions.getMapHighestAltitude());
 		
-		final Map map = new Map(config.getSeed(), config.getMapLargestFeature(), config.getMapFeaturePersistence(),
-				config.getMapLowestAltitude(), config.getMapHighestAltitude());
+		new App(appConfig);
+		
+		final Map map = new Map(appConfig);
 		
 		final BufferedImage img = new BufferedImage(mapWidth, mapHeight, BufferedImage.TYPE_INT_ARGB);
 		
@@ -70,7 +73,8 @@ public class ExportMapCommand implements Runnable {
 				
 				final double height = map.getHeightFrac(x, y);
 				
-				final int r = (int) (height * 255d), g = (int) (height * 255d), b = (int) (height * 255d);
+				final int r = (int) (height * 255d) & 255, g = (int) (height * 255d) & 255,
+						b = (int) (height * 255d) & 255;
 				
 				final int rgb = (255 << 24) | (r << 16) | (g << 8) | b;
 				img.setRGB(x + halfWidth, y + halfHeight, rgb);

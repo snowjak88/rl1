@@ -4,7 +4,7 @@
 package org.snowjak.rl1.components;
 
 import org.snowjak.rl1.drawing.DrawableLayer;
-import org.snowjak.rl1.drawing.ascii.AsciiScreen;
+import org.snowjak.rl1.screen.AsciiScreen;
 
 import com.artemis.PooledComponent;
 import com.badlogic.gdx.graphics.Color;

@@ -1,7 +1,7 @@
 /**
  * 
  */
-package org.snowjak.rl1.config;
+package org.snowjak.rl1;
 
 import java.io.File;
 import java.io.FileReader;
@@ -14,6 +14,7 @@ import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snowjak.rl1.drawing.ascii.AsciiFont;
+import org.snowjak.rl1.map.MapConfig;
 import org.snowjak.rl1.util.Converters;
 
 import com.badlogic.gdx.utils.Disposable;
@@ -25,9 +26,9 @@ import picocli.CommandLine.Command;
  *
  */
 @Command
-public class Config implements Disposable {
+public class AppConfig implements Disposable {
 	
-	private static final Logger LOG = LoggerFactory.getLogger(Config.class);
+	private static final Logger LOG = LoggerFactory.getLogger(AppConfig.class);
 	
 	/**
 	 * Default config-file name
@@ -61,67 +62,26 @@ public class Config implements Disposable {
 	
 	private String seed = "";
 	
-	private int mapLargestFeature = 1000;
-	private float mapFeaturePersistence = 0.3f;
-	private int mapLowestAltitude = 0;
-	private int mapHighestAltitude = 300;
+	private MapConfig mapConfig = new MapConfig();
 	
 	/**
-	 * Construct a new {@link Config} instance. If {@link #CONFIG_FILE} exists and
-	 * can be loaded, this will load the contents of {@link #CONFIG_FILE} into this
-	 * {@link Config} instance.
+	 * Construct a new {@link AppConfig} instance. If {@link #CONFIG_FILE} exists
+	 * and can be loaded, this will load the contents of {@link #CONFIG_FILE} into
+	 * this {@link AppConfig} instance.
 	 */
-	public Config() {
+	public AppConfig() {
 		
-		if (CONFIG_FILE.exists() && CONFIG_FILE.isFile()) {
-			try {
-				
-				final Properties p = new Properties();
-				p.load(new FileReader(CONFIG_FILE));
-				
-				getConfig(p, KEY_PARALLELISM, this::getParallelism, this::setParallelism, Integer.class);
-				
-				if (p.containsKey(KEY_FONT_FILENAME) && p.containsKey(KEY_FONT_WIDTH) && p.containsKey(KEY_FONT_HEIGHT)
-						&& !(p.getProperty(KEY_FONT_FILENAME).trim().isEmpty())
-						&& !(p.getProperty(KEY_FONT_WIDTH).trim().isEmpty())
-						&& !(p.getProperty(KEY_FONT_HEIGHT).trim().isEmpty())) {
-					
-					getConfig(p, KEY_FONT_FILENAME, this::getFontFile, this::setFontFile, File.class);
-					getConfig(p, KEY_FONT_WIDTH, this::getFontWidth, this::setFontWidth, Integer.class);
-					getConfig(p, KEY_FONT_HEIGHT, this::getFontHeight, this::setFontHeight, Integer.class);
-					
-				}
-				
-				getConfig(p, KEY_SCREEN_WIDTH, this::getScreenWidth, this::setScreenWidth, Integer.class);
-				getConfig(p, KEY_SCREEN_HEIGHT, this::getScreenHeight, this::setScreenHeight, Integer.class);
-				
-				getConfig(p, KEY_SEED, this::getSeed, this::setSeed, String.class);
-				
-				getConfig(p, KEY_MAP_LARGEST_FEATURE, this::getMapLargestFeature, this::setMapLargestFeature,
-						Integer.class);
-				getConfig(p, KEY_MAP_PERSISTENCE, this::getMapFeaturePersistence, this::setMapFeaturePersistence,
-						Float.class);
-				getConfig(p, KEY_MAP_LOWEST_ALTITUDE, this::getMapLowestAltitude, this::setMapLowestAltitude,
-						Integer.class);
-				getConfig(p, KEY_MAP_HIGHEST_ALTITUDE, this::getMapHighestAltitude, this::setMapHighestAltitude,
-						Integer.class);
-				
-			} catch (IOException e) {
-				LOG.error("Cannot load stored options from config-file \"" + CONFIG_FILE.getPath()
-						+ "\". Falling back to defaults.", e);
-			}
-		}
 	}
 	
 	private <T> void getConfig(Properties p, String propertyKey, Supplier<T> getter, Consumer<T> setter,
 			Class<T> type) {
 		
-		try {
-			setter.accept(Converters.convert(p.getProperty(propertyKey, Converters.convert(getter.get(), String.class)),
-					type));
-		} catch (Exception e) {
-			LOG.error("Cannot parse [" + propertyKey + "]. Falling back to default.", e);
-		}
+		if (p.containsKey(propertyKey))
+			try {
+				setter.accept(Converters.convert(p.getProperty(propertyKey), type));
+			} catch (Exception e) {
+				LOG.error("Cannot parse [" + propertyKey + "]. Falling back to default.", e);
+			}
 	}
 	
 	private <T> void setConfig(Properties p, String propertyKey, Supplier<T> getter) {
@@ -263,71 +223,62 @@ public class Config implements Disposable {
 	}
 	
 	/**
-	 * @return the mapLargestFeature
+	 * @retur)n the mapConfig
 	 */
-	public int getMapLargestFeature() {
+	public MapConfig getMapConfig() {
 		
-		return mapLargestFeature;
+		return mapConfig;
 	}
 	
 	/**
-	 * @param mapLargestFeature
-	 *            the mapLargestFeature to set
+	 * @param mapConfig
+	 *            the mapConfig to set
 	 */
-	public void setMapLargestFeature(int mapLargestFeature) {
+	public void setMapConfig(MapConfig mapConfig) {
 		
-		this.mapLargestFeature = mapLargestFeature;
+		this.mapConfig = mapConfig;
 	}
 	
-	/**
-	 * @return the persistence
-	 */
-	public float getMapFeaturePersistence() {
+	public void loadFromFile() {
 		
-		return mapFeaturePersistence;
-	}
-	
-	/**
-	 * @param persistence
-	 *            the persistence to set
-	 */
-	public void setMapFeaturePersistence(float persistence) {
-		
-		this.mapFeaturePersistence = persistence;
-	}
-	
-	/**
-	 * @return the mapLowestAltitude
-	 */
-	public int getMapLowestAltitude() {
-		
-		return mapLowestAltitude;
-	}
-	
-	/**
-	 * @param mapLowestAltitude
-	 *            the mapLowestAltitude to set
-	 */
-	public void setMapLowestAltitude(int mapLowestAltitude) {
-		
-		this.mapLowestAltitude = mapLowestAltitude;
-	}
-	
-	/**
-	 * @return the mapHighestAltitude
-	 */
-	public int getMapHighestAltitude() {
-		
-		return mapHighestAltitude;
-	}
-	
-	/**
-	 * @param mapHighestAltitude
-	 *            the mapHighestAltitude to set
-	 */
-	public void setMapHighestAltitude(int mapHighestAltitude) {
-		
-		this.mapHighestAltitude = mapHighestAltitude;
+		if (CONFIG_FILE.exists() && CONFIG_FILE.isFile()) {
+			try {
+				
+				final Properties p = new Properties();
+				p.load(new FileReader(CONFIG_FILE));
+				
+				getConfig(p, KEY_PARALLELISM, this::getParallelism, this::setParallelism, Integer.class);
+				
+				if (p.containsKey(KEY_FONT_FILENAME) && p.containsKey(KEY_FONT_WIDTH) && p.containsKey(KEY_FONT_HEIGHT)
+						&& !(p.getProperty(KEY_FONT_FILENAME).trim().isEmpty())
+						&& !(p.getProperty(KEY_FONT_WIDTH).trim().isEmpty())
+						&& !(p.getProperty(KEY_FONT_HEIGHT).trim().isEmpty())) {
+					
+					getConfig(p, KEY_FONT_FILENAME, this::getFontFile, this::setFontFile, File.class);
+					getConfig(p, KEY_FONT_WIDTH, this::getFontWidth, this::setFontWidth, Integer.class);
+					getConfig(p, KEY_FONT_HEIGHT, this::getFontHeight, this::setFontHeight, Integer.class);
+					
+				}
+				
+				getConfig(p, KEY_SCREEN_WIDTH, this::getScreenWidth, this::setScreenWidth, Integer.class);
+				getConfig(p, KEY_SCREEN_HEIGHT, this::getScreenHeight, this::setScreenHeight, Integer.class);
+				
+				getConfig(p, KEY_SEED, this::getSeed, this::setSeed, String.class);
+				
+				getConfig(p, KEY_MAP_LARGEST_FEATURE, () -> this.getMapConfig().getLargestFeature(),
+						(i) -> this.getMapConfig().setLargestFeature(i), Integer.class);
+				getConfig(p, KEY_MAP_PERSISTENCE, () -> this.getMapConfig().getPersistence(),
+						(f) -> this.getMapConfig().setPersistence(f), Float.class);
+				getConfig(p, KEY_MAP_LOWEST_ALTITUDE, () -> this.getMapConfig().getLowAltitude(),
+						(i) -> this.getMapConfig().setLowAltitude(i), Integer.class);
+				getConfig(p, KEY_MAP_HIGHEST_ALTITUDE, () -> this.getMapConfig().getHighAltitude(),
+						(i) -> this.getMapConfig().setHighAltitude(i), Integer.class);
+				
+			} catch (IOException e) {
+				LOG.error("Cannot load stored options from config-file \"" + CONFIG_FILE.getPath()
+						+ "\". Falling back to defaults.", e);
+			}
+		}
 	}
 	
 	/**
@@ -352,10 +303,10 @@ public class Config implements Disposable {
 			
 			setConfig(p, KEY_SEED, this::getSeed);
 			
-			setConfig(p, KEY_MAP_LARGEST_FEATURE, this::getMapLargestFeature);
-			setConfig(p, KEY_MAP_PERSISTENCE, this::getMapFeaturePersistence);
-			setConfig(p, KEY_MAP_LOWEST_ALTITUDE, this::getMapLowestAltitude);
-			setConfig(p, KEY_MAP_HIGHEST_ALTITUDE, this::getMapHighestAltitude);
+			setConfig(p, KEY_MAP_LARGEST_FEATURE, () -> this.getMapConfig().getLargestFeature());
+			setConfig(p, KEY_MAP_PERSISTENCE, () -> this.getMapConfig().getPersistence());
+			setConfig(p, KEY_MAP_LOWEST_ALTITUDE, () -> this.getMapConfig().getLowAltitude());
+			setConfig(p, KEY_MAP_HIGHEST_ALTITUDE, () -> this.getMapConfig().getHighAltitude());
 			
 			p.store(w, "RL1 Options (auto-saved)");
 			
