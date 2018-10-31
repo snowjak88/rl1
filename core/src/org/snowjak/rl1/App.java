@@ -10,6 +10,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snowjak.rl1.display.MainDisplay;
+import org.snowjak.rl1.map.MapGenerator;
 import org.snowjak.rl1.util.PriorityInputMultiplexer;
 
 import com.artemis.World;
@@ -47,6 +48,11 @@ public class App extends Game {
 	public final AppConfig appConfig;
 	
 	/**
+	 * The configured {@link MapGenerator}.
+	 */
+	public final MapGenerator mapGenerator;
+	
+	/**
 	 * The {@link MainDisplay} presented on-screen.
 	 */
 	public MainDisplay display;
@@ -66,6 +72,7 @@ public class App extends Game {
 		Context.initialize(this);
 		
 		this.appConfig = appConfig;
+		this.mapGenerator = new MapGenerator(appConfig);
 		this.events = new EventSystem();
 		this.input = new PriorityInputMultiplexer();
 		
@@ -102,6 +109,20 @@ public class App extends Game {
 		display = new MainDisplay();
 		
 		setScreen(display);
+	}
+	
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see com.badlogic.gdx.Game#resize(int, int)
+	 */
+	@Override
+	public void resize(int width, int height) {
+		
+		super.resize(width, height);
+		
+		appConfig.setWindowWidth(width);
+		appConfig.setWindowHeight(height);
 	}
 	
 	/*

@@ -3,8 +3,11 @@
  */
 package org.snowjak.rl1.screen;
 
-import org.snowjak.rl1.drawing.ascii.AsciiFont;
+import java.util.function.BiConsumer;
+
+import org.snowjak.rl1.screen.AsciiScreen.ResizeEvent;
 import org.snowjak.rl1.util.IntPair;
+import org.snowjak.rl1.util.Listenable;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.ScreenAdapter;
@@ -19,64 +22,48 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
  * @author snowjak88
  *
  */
-public class AsciiScreen extends ScreenAdapter {
+public class AsciiScreen extends ScreenAdapter implements Listenable<ResizeEvent> {
 	
 	public static final Color DEFAULT_FOREGROUND = Color.LIGHT_GRAY;
 	public static final Color DEFAULT_BACKGROUND = Color.BLACK;
 	
-	private final int width, height;
-	private final char[][] buffer;
-	private final Color[][][] colors;
-	
 	private final SpriteBatch screenBatch;
+	private final boolean allocateBuffers;
+	
+	private final EventRouter eventRouter = new EventRouter();
 	
 	private AsciiFont font;
 	private Color foregroundColor = DEFAULT_FOREGROUND, backgroundColor = DEFAULT_BACKGROUND;
 	
 	private IntPair cursor;
 	
-	private float renderScale = 1, renderOffsetX = 0, renderOffsetY = 0;
+	private int pixelWidth = 0, pixelHeight = 0;
+	private int width = 0, height = 0;
+	private char[][] buffer;
+	private Color[][][] colors;
+	
+	private float renderScale = 1;
 	
 	/**
-	 * Construct a new {@link AsciiScreen} with {@code widthInChars} columns and
-	 * {@code heightInChars} rows, using the specified {@link AsciiFont}.
+	 * Construct a new {@link AsciiScreen} using the specified {@link AsciiFont}.
 	 * 
 	 * @param widthInChars
 	 * @param heightInChars
 	 * @param font
 	 */
-	public AsciiScreen(int widthInChars, int heightInChars, AsciiFont font) {
+	public AsciiScreen(AsciiFont font) {
 		
-		this(widthInChars, heightInChars, font, true);
+		this(font, true);
 	}
 	
-	protected AsciiScreen(int widthInChars, int heightInChars, AsciiFont font, boolean allocateBuffers) {
+	protected AsciiScreen(AsciiFont font, boolean allocateBuffers) {
 		
-		assert (widthInChars > 0);
-		assert (heightInChars > 0);
 		assert (font != null);
 		
+		this.allocateBuffers = allocateBuffers;
 		this.font = font;
-		
-		if (allocateBuffers) {
-			this.buffer = new char[widthInChars][heightInChars];
-			this.colors = new Color[widthInChars][heightInChars][2];
-			
-			for (int x = 0; x < widthInChars; x++)
-				for (int y = 0; y < heightInChars; y++) {
-					this.colors[x][y][0] = DEFAULT_FOREGROUND;
-					this.colors[x][y][1] = DEFAULT_BACKGROUND;
-				}
-		} else {
-			this.buffer = null;
-			this.colors = null;
-		}
-		
-		this.width = widthInChars;
-		this.height = heightInChars;
 		this.cursor = new IntPair(0, 0);
-		
-		this.screenBatch = new SpriteBatch(Math.min(8191, widthInChars * heightInChars));
+		this.screenBatch = new SpriteBatch(8191);
 	}
 	
 	/*
@@ -98,18 +85,17 @@ public class AsciiScreen extends ScreenAdapter {
 				
 				final TextureRegion charTex = font.getChar(get(x, y));
 				
-				final float screenX = ((float) x * (float) font.getCharWidth() * renderScale) + renderOffsetX;
-				final float screenY = ((float) (getHeightInChars() - y - 1) * (float) font.getCharHeight()
-						* renderScale) + renderOffsetY;
+				final float screenX = (float) x * (float) font.getCharWidth() / renderScale;
+				final float screenY = (float) (getHeightInChars() - y - 1) * (float) font.getCharHeight() / renderScale;
 				
 				screenBatch.setColor(colors[x][y][1]);
-				screenBatch.draw(fillTex, screenX, screenY, (float) font.getCharWidth() * renderScale,
-						(float) font.getCharHeight() * renderScale);
+				screenBatch.draw(fillTex, screenX, screenY, (float) font.getCharWidth() / renderScale,
+						(float) font.getCharHeight() / renderScale);
 				
 				screenBatch.enableBlending();
 				screenBatch.setColor(colors[x][y][0]);
-				screenBatch.draw(charTex, screenX, screenY, (float) font.getCharWidth() * renderScale,
-						(float) font.getCharHeight() * renderScale);
+				screenBatch.draw(charTex, screenX, screenY, (float) font.getCharWidth() / renderScale,
+						(float) font.getCharHeight() / renderScale);
 				screenBatch.disableBlending();
 				
 				i += 2;
@@ -135,6 +121,20 @@ public class AsciiScreen extends ScreenAdapter {
 		font.dispose();
 	}
 	
+	public void setScale(float scale) {
+		
+		assert (scale > 0);
+		
+		this.renderScale = scale;
+		
+		this.resize(pixelWidth, pixelHeight);
+	}
+	
+	public float getScale() {
+		
+		return renderScale;
+	}
+	
 	/*
 	 * (non-Javadoc)
 	 * 
@@ -145,20 +145,34 @@ public class AsciiScreen extends ScreenAdapter {
 		
 		screenBatch.getProjectionMatrix().setToOrtho2D(0, 0, width, height);
 		
-		final float textSizeX = (float) this.width * (float) font.getCharWidth();
-		final float textSizeY = (float) this.height * (float) font.getCharHeight();
+		this.pixelWidth = width;
+		this.pixelHeight = height;
 		
-		final float scaleX = (float) width / textSizeX;
-		final float scaleY = (float) height / textSizeY;
+		final float charWidth = (float) font.getCharWidth() / renderScale;
+		final float charHeight = (float) font.getCharHeight() / renderScale;
 		
-		if (scaleX <= scaleY) {
-			this.renderScale = scaleX;
-			this.renderOffsetX = 0;
-			this.renderOffsetY = ((float) height - textSizeY * renderScale) / 2f;
+		this.width = (int) ((float) width / charWidth);
+		this.height = (int) ((float) height / charHeight);
+		
+		rebuildBuffers();
+		
+		fireEvent(new ResizeEvent(width, height));
+	}
+	
+	private void rebuildBuffers() {
+		
+		if (allocateBuffers) {
+			this.buffer = new char[width][height];
+			this.colors = new Color[width][height][2];
+			
+			for (int x = 0; x < width; x++)
+				for (int y = 0; y < height; y++) {
+					this.colors[x][y][0] = DEFAULT_FOREGROUND;
+					this.colors[x][y][1] = DEFAULT_BACKGROUND;
+				}
 		} else {
-			this.renderScale = scaleY;
-			this.renderOffsetX = ((float) width - textSizeX * renderScale) / 2f;
-			this.renderOffsetY = 0;
+			this.buffer = null;
+			this.colors = null;
 		}
 	}
 	
@@ -405,15 +419,167 @@ public class AsciiScreen extends ScreenAdapter {
 	 * Construct an {@link AsciiScreenRegion} delegating to a specific region of
 	 * this {@link AsciiScreen}.
 	 * 
-	 * @param startX
-	 * @param startY
-	 * @param endX
-	 * @param endY
+	 * @param alignment
 	 * @return
 	 */
-	public AsciiScreenRegion getRegion(int startX, int startY, int endX, int endY) {
+	public AsciiScreenRegion getRegion(RegionAlignment alignment) {
 		
-		return new AsciiScreenRegion(this, startX, startY, endX, endY);
+		return new AsciiScreenRegion(this, alignment.resizer);
+	}
+	
+	public AsciiScreenRegion getRegion(BiConsumer<AsciiScreen, AsciiScreenRegion> resizer) {
+		
+		return new AsciiScreenRegion(this, resizer);
+	}
+	
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see org.snowjak.rl1.util.Listenable#getEventRouter()
+	 */
+	@Override
+	public EventRouter getEventRouter() {
+		
+		return eventRouter;
+	}
+	
+	public enum RegionAlignment {
+		/**
+		 * The {@link AsciiScreenRegion} is set up to occupy the left-most 30% of its
+		 * parent {@link AsciiScreen}.
+		 */
+		LEFT_30((s, r) -> {
+			// final float width = (float) s.pixelWidth * s.getScale() * (float)
+			// s.font.getCharWidth();
+			// final float height = (float) s.height * s.getScale() * (float)
+			// s.font.getCharHeight();
+			r.resize((int) (0.3 * (float) s.pixelWidth), s.pixelHeight);
+			r.setScale(s.getScale());
+			r.setStart(0, 0);
+		}),
+		
+		/**
+		 * The {@link AsciiScreenRegion} is set up to occupy the left-most 70% of its
+		 * parent {@link AsciiScreen}.
+		 */
+		LEFT_70((s, r) -> {
+			// final float width = (float) s.width * s.getScale() * (float)
+			// s.font.getCharWidth();
+			// final float height = (float) s.height * s.getScale() * (float)
+			// s.font.getCharHeight();
+			r.resize((int) (0.7 * (float) s.pixelWidth), s.pixelHeight);
+			r.setScale(s.getScale());
+			r.setStart(0, 0);
+		}),
+		/**
+		 * The {@link AsciiScreenRegion} is set up to occupy the right-most 30% of its
+		 * parent {@link AsciiScreen}.
+		 */
+		RIGHT_30((s, r) -> {
+			// final float width = (float) s.width * s.getScale() * (float)
+			// s.font.getCharWidth();
+			// final float height = (float) s.height * s.getScale() * (float)
+			// s.font.getCharHeight();
+			r.resize((int) (0.3 * (float) s.pixelWidth), s.pixelHeight);
+			r.setScale(s.getScale());
+			r.setStart((int) (0.7 * (float) s.getWidthInChars()), 0);
+		}),
+		/**
+		 * The {@link AsciiScreenRegion} is set up to occupy the right-most 70% of its
+		 * parent {@link AsciiScreen}.
+		 */
+		RIGHT_70((s, r) -> {
+			// final float width = (float) s.width * s.getScale() * (float)
+			// s.font.getCharWidth();
+			// final float height = (float) s.height * s.getScale() * (float)
+			// s.font.getCharHeight();
+			r.resize((int) (0.7 * (float) s.pixelWidth), s.pixelHeight);
+			r.setStart((int) (0.3 * (float) s.getWidthInChars()), 0);
+		}),
+		/**
+		 * The {@link AsciiScreenRegion} is set up to occupy the top-most 30% of its
+		 * parent {@link AsciiScreen}.
+		 */
+		TOP_30((s, r) -> {
+			// final float width = (float) s.width * s.getScale() * (float)
+			// s.font.getCharWidth();
+			// final float height = (float) s.height * s.getScale() * (float)
+			// s.font.getCharHeight();
+			r.resize(s.pixelWidth, (int) (0.3 * (float) s.pixelHeight));
+			r.setStart(0, 0);
+		}),
+		/**
+		 * The {@link AsciiScreenRegion} is set up to occupy the top-most 70% of its
+		 * parent {@link AsciiScreen}.
+		 */
+		TOP_70((s, r) -> {
+			// final float width = (float) s.width * s.getScale() * (float)
+			// s.font.getCharWidth();
+			// final float height = (float) s.height * s.getScale() * (float)
+			// s.font.getCharHeight();
+			r.resize(s.pixelWidth, (int) (0.7 * (float) s.pixelHeight));
+			r.setStart(0, 0);
+		}),
+		/**
+		 * The {@link AsciiScreenRegion} is set up to occupy the bottom-most 30% of its
+		 * parent {@link AsciiScreen}.
+		 */
+		BOTTOM_30((s, r) -> {
+			// final float width = (float) s.width * s.getScale() * (float)
+			// s.font.getCharWidth();
+			// final float height = (float) s.height * s.getScale() * (float)
+			// s.font.getCharHeight();
+			r.resize(s.pixelWidth, (int) (0.3 * (float) s.pixelHeight));
+			r.setStart(0, (int) (0.7 * (float) s.getHeightInChars()));
+		}),
+		/**
+		 * The {@link AsciiScreenRegion} is set up to occupy the bottom-most 70% of its
+		 * parent {@link AsciiScreen}.
+		 */
+		BOTTOM_70((s, r) -> {
+			// final float width = (float) s.width * s.getScale() * (float)
+			// s.font.getCharWidth();
+			// final float height = (float) s.height * s.getScale() * (float)
+			// s.font.getCharHeight();
+			r.resize(s.pixelWidth, (int) (0.7 * (float) s.pixelHeight));
+			r.setStart(0, (int) (0.3 * (float) s.getHeightInChars()));
+		}),
+		/**
+		 * The {@link AsciiScreenRegion} is set up to occupy a centered area, 50% of the
+		 * width/height of its parent {@link AsciiScreen}.
+		 */
+		CENTER_50((s, r) -> {
+			// final float width = (float) s.width * s.getScale() * (float)
+			// s.font.getCharWidth();
+			// final float height = (float) s.height * s.getScale() * (float)
+			// s.font.getCharHeight();
+			r.resize((int) ((float) s.pixelWidth * 0.5), (int) ((float) s.pixelHeight * 0.5));
+			r.setStart((int) (0.25 * (float) s.getWidthInChars()), (int) (0.25 * (float) s.getHeightInChars()));
+		}),
+		/**
+		 * The {@link AsciiScreenRegion} is set up to occupy the entirity of the parent
+		 * AsciiScreen excepting a border of 1 character's width.
+		 */
+		CENTER_MINUS_1((s, r) -> {
+			
+			final float widthInChars = (float) s.pixelWidth * s.renderScale / (float) s.font.getCharWidth() - 2;
+			final float heightInChars = (float) s.pixelHeight * s.renderScale / (float) s.font.getCharHeight() - 2;
+			final int widthInPixels = (int) (widthInChars * (float) s.font.getCharWidth() / s.renderScale);
+			final int heightInPixels = (int) (heightInChars * (float) s.font.getCharHeight() / s.renderScale);
+			r.resize(widthInPixels, heightInPixels);
+			r.setStart(1, 1);
+		});
+		
+		private final BiConsumer<AsciiScreen, AsciiScreenRegion> resizer;
+		
+		/**
+		 * @param resizer
+		 */
+		private RegionAlignment(BiConsumer<AsciiScreen, AsciiScreenRegion> resizer) {
+			
+			this.resizer = resizer;
+		}
+		
 	}
 	
 	/**
@@ -427,7 +593,10 @@ public class AsciiScreen extends ScreenAdapter {
 	public static class AsciiScreenRegion extends AsciiScreen {
 		
 		private final AsciiScreen screen;
-		private final int startX, startY;
+		private final BiConsumer<AsciiScreen, AsciiScreenRegion> resizer;
+		private final Registration resizeEventRegistration;
+		
+		private int startX, startY;
 		
 		/**
 		 * @param screen
@@ -436,10 +605,28 @@ public class AsciiScreen extends ScreenAdapter {
 		 * @param endX
 		 * @param endY
 		 */
-		public AsciiScreenRegion(AsciiScreen screen, int startX, int startY, int endX, int endY) {
+		public AsciiScreenRegion(AsciiScreen screen, BiConsumer<AsciiScreen, AsciiScreenRegion> resizer) {
 			
-			super(endX - startX + 1, endY - startY + 1, screen.getFont(), false);
+			super(screen.getFont(), false);
 			this.screen = screen;
+			this.resizer = resizer;
+			this.resizeEventRegistration = screen.addListener(this, "handleResizeEvent");
+		}
+		
+		public void handleResizeEvent(ResizeEvent e) {
+			
+			this.resizer.accept(screen, this);
+		}
+		
+		/**
+		 * Update the "start-point", where the upper-left corner of the region lies
+		 * within its parent AsciiScreen.
+		 * 
+		 * @param startX
+		 * @param startY
+		 */
+		public void setStart(int startX, int startY) {
+			
 			this.startX = startX;
 			this.startY = startY;
 		}
@@ -486,6 +673,35 @@ public class AsciiScreen extends ScreenAdapter {
 		public void render(float delta) {
 			
 			screen.render(delta);
+		}
+		
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see org.snowjak.rl1.screen.AsciiScreen#dispose()
+		 */
+		@Override
+		public void dispose() {
+			
+			super.dispose();
+			resizeEventRegistration.remove();
+		}
+		
+	}
+	
+	public static class ResizeEvent implements Listenable.Event {
+		
+		@SuppressWarnings("unused")
+		private final int width, height;
+		
+		/**
+		 * @param width
+		 * @param height
+		 */
+		public ResizeEvent(int width, int height) {
+			
+			this.width = width;
+			this.height = height;
 		}
 		
 	}

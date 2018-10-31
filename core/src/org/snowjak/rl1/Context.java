@@ -4,6 +4,7 @@
 package org.snowjak.rl1;
 
 import org.snowjak.rl1.display.MainDisplay;
+import org.snowjak.rl1.map.MapGenerator;
 import org.snowjak.rl1.util.PriorityInputMultiplexer;
 
 import com.artemis.World;
@@ -111,6 +112,11 @@ public class Context {
 	public MainDisplay display() {
 		
 		return app.display;
+	}
+	
+	public MapGenerator mapGenerator() {
+		
+		return app.mapGenerator;
 	}
 	
 	private Context(App app) {

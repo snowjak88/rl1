@@ -4,8 +4,9 @@
 package org.snowjak.rl1.display;
 
 import org.snowjak.rl1.Context;
-import org.snowjak.rl1.map.Map;
+import org.snowjak.rl1.map.MapGenerator;
 import org.snowjak.rl1.screen.AsciiScreen;
+import org.snowjak.rl1.screen.AsciiScreen.RegionAlignment;
 
 /**
  * @author snowjak88
@@ -13,7 +14,7 @@ import org.snowjak.rl1.screen.AsciiScreen;
  */
 public class MainDisplay extends AbstractDisplay {
 	
-	private MapDisplay mapDisplay;
+	private MapScrollingDisplay mapDisplay;
 	private AbstractDisplay statusDisplay;
 	
 	/**
@@ -23,16 +24,19 @@ public class MainDisplay extends AbstractDisplay {
 	 */
 	public MainDisplay() {
 		
-		super(new AsciiScreen(Context.get().appConfig().getScreenWidth(), Context.get().appConfig().getScreenHeight(),
-				Context.get().appConfig().getFont()), null, false, null);
+		super(new AsciiScreen(Context.get().appConfig().getFont()), null, false, null, true);
 		
-		final int mapWidth = Math.max(1, getScreen().getWidthInChars() - 32);
+		mapDisplay = new MapScrollingDisplay(new MapGenerator(Context.get().appConfig()),
+				getScreen().getRegion(RegionAlignment.LEFT_70)) {
+			
+			@Override
+			public void drawAfterMap(AsciiScreen screen) {
+				
+			}
+		};
 		
-		mapDisplay = new MapDisplay(new Map(Context.get().appConfig()),
-				getScreen().getRegion(0, 0, mapWidth - 1, getScreen().getHeightInChars() - 1));
-		
-		statusDisplay = new AbstractDisplay(getScreen().getRegion(mapWidth, 0, getScreen().getWidthInChars() - 1,
-				getScreen().getHeightInChars() - 1), "Status", true, BorderType.DOUBLE_LINE) {
+		statusDisplay = new AbstractDisplay(getScreen().getRegion(RegionAlignment.RIGHT_30), "Status", false,
+				BorderType.DOUBLE_LINE, false) {
 			
 			@Override
 			public void drawContent(AsciiScreen screen) {
@@ -63,7 +67,7 @@ public class MainDisplay extends AbstractDisplay {
 		statusDisplay.draw();
 	}
 	
-	public MapDisplay getMapDisplay() {
+	public MapScrollingDisplay getMapDisplay() {
 		
 		return mapDisplay;
 	}

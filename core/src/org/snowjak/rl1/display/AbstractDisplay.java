@@ -3,28 +3,40 @@
  */
 package org.snowjak.rl1.display;
 
+import org.snowjak.rl1.Context;
+import org.snowjak.rl1.display.AbstractDisplay.CommonDisplayInputProcessor.UpdateScaleEvent;
+import org.snowjak.rl1.display.AbstractDisplay.DisplayInputProcessor.DisplayEvent;
 import org.snowjak.rl1.screen.AsciiScreen;
+import org.snowjak.rl1.screen.AsciiScreen.RegionAlignment;
+import org.snowjak.rl1.util.Listenable;
+import org.snowjak.rl1.util.Listenable.Registration;
 
-import com.badlogic.gdx.ScreenAdapter;
+import com.badlogic.gdx.InputAdapter;
+import com.badlogic.gdx.Screen;
 
 /**
  * @author snowjak88
  *
  */
-public abstract class AbstractDisplay extends ScreenAdapter {
+public abstract class AbstractDisplay implements Screen {
 	
 	private final AsciiScreen screen;
 	private final AsciiScreen contentScreen;
 	private final boolean bordered;
 	private final BorderType borderType;
 	
+	private Registration updateScaleRegistration = null;
+	
 	private String title;
 	private boolean isActive;
 	
 	/**
+	 * Construct a new AbstractDisplay.
+	 * 
 	 * @param screen
 	 */
-	public AbstractDisplay(AsciiScreen screen, String title, boolean bordered, BorderType borderType) {
+	public AbstractDisplay(AsciiScreen screen, String title, boolean bordered, BorderType borderType,
+			boolean isRootDisplay) {
 		
 		assert ((bordered) == (borderType != null));
 		
@@ -35,10 +47,21 @@ public abstract class AbstractDisplay extends ScreenAdapter {
 		this.isActive = true;
 		
 		if (bordered)
-			this.contentScreen = screen.getRegion(1, 1, screen.getWidthInChars() - 2, screen.getHeightInChars() - 2);
+			this.contentScreen = screen.getRegion(RegionAlignment.CENTER_MINUS_1);
 		else
 			this.contentScreen = screen;
 		
+		if (isRootDisplay) {
+			final CommonDisplayInputProcessor commonInputProcessor = new CommonDisplayInputProcessor();
+			Context.get().in().addProcessor(commonInputProcessor.getPriority(), commonInputProcessor);
+			
+			updateScaleRegistration = commonInputProcessor.addListener(this, "handleUpdateScaleEvent");
+		}
+	}
+	
+	public void handleUpdateScaleEvent(UpdateScaleEvent e) {
+		
+		screen.setScale(screen.getScale() * e.getScaleMultiplier());
 	}
 	
 	/*
@@ -97,6 +120,12 @@ public abstract class AbstractDisplay extends ScreenAdapter {
 			drawBorder();
 	}
 	
+	/**
+	 * Draw this display's content to the given {@link AsciiScreen} (identical to
+	 * {@link #getContentScreen()}).
+	 * 
+	 * @param screen
+	 */
 	public abstract void drawContent(AsciiScreen screen);
 	
 	private void drawBorder() {
@@ -140,11 +169,26 @@ public abstract class AbstractDisplay extends ScreenAdapter {
 	}
 	
 	/**
+	 * The {@link AsciiScreen} on which this entire display is drawn.
+	 * 
 	 * @return the mainScreen
+	 * @see #getContentScreen()
 	 */
 	public AsciiScreen getScreen() {
 		
 		return screen;
+	}
+	
+	/**
+	 * The {@link AsciiScreen} on which this display's content is drawn. This will
+	 * not be identical with {@link #getScreen()} if the display is configured to
+	 * have a border.
+	 * 
+	 * @return
+	 */
+	public AsciiScreen getContentScreen() {
+		
+		return contentScreen;
 	}
 	
 	/*
@@ -211,6 +255,110 @@ public abstract class AbstractDisplay extends ScreenAdapter {
 	public void dispose() {
 		
 		screen.dispose();
+		
+		if (updateScaleRegistration != null)
+			updateScaleRegistration.remove();
+	}
+	
+	/**
+	 * Provides input-handling to AbstractDisplay to handle common events.
+	 * 
+	 * @author snowjak88
+	 *
+	 */
+	public abstract static class DisplayInputProcessor extends InputAdapter implements Listenable<DisplayEvent> {
+		
+		private final int priority;
+		private final EventRouter eventRouter = new EventRouter();
+		
+		/**
+		 * @param display
+		 * @param priority
+		 */
+		public DisplayInputProcessor(int priority) {
+			
+			this.priority = priority;
+		}
+		
+		/**
+		 * @return the priority
+		 */
+		public int getPriority() {
+			
+			return priority;
+		}
+		
+		public interface DisplayEvent extends Listenable.Event {
+			
+		}
+		
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see org.snowjak.rl1.util.Listenable#getEventRouter()
+		 */
+		@Override
+		public EventRouter getEventRouter() {
+			
+			return eventRouter;
+		}
+	}
+	
+	/**
+	 * Provides input-handling to AbstractDisplay to handle common events.
+	 * 
+	 * @author snowjak88
+	 *
+	 */
+	public static class CommonDisplayInputProcessor extends DisplayInputProcessor implements Listenable<DisplayEvent> {
+		
+		public static final int COMMON_DISPLAY_INPUT_PRIORITY = 64;
+		
+		/**
+		 * @param display
+		 * @param priority
+		 */
+		public CommonDisplayInputProcessor() {
+			
+			super(COMMON_DISPLAY_INPUT_PRIORITY);
+		}
+		
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see com.badlogic.gdx.InputAdapter#scrolled(int)
+		 */
+		@Override
+		public boolean scrolled(int amount) {
+			
+			final float multiplier = (float) Math.pow(2, amount);
+			
+			fireEvent(new UpdateScaleEvent(multiplier));
+			
+			return true;
+		}
+		
+		public class UpdateScaleEvent implements DisplayEvent {
+			
+			private final float scaleMultiplier;
+			
+			/**
+			 * @param scale
+			 */
+			public UpdateScaleEvent(float scaleMultiplier) {
+				
+				this.scaleMultiplier = scaleMultiplier;
+			}
+			
+			/**
+			 * @return the scale
+			 */
+			public float getScaleMultiplier() {
+				
+				return scaleMultiplier;
+			}
+			
+		}
 	}
 	
 	public enum BorderType {

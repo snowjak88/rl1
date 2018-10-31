@@ -3,60 +3,61 @@
  */
 package org.snowjak.rl1.map;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.snowjak.rl1.AppConfig;
-import org.snowjak.rl1.util.SimplexNoise.SimplexOctave;
-
 /**
+ * A {@link Map} is a section of a {@link MapGenerator} that's been generated
+ * out explicitly, and is capable of being interacted with.
+ * 
  * @author snowjak88
  *
  */
 public class Map {
 	
-	private static final Logger LOG = LoggerFactory.getLogger(Map.class);
-	
-	private final MapConfig mapConfig;
-	private final SimplexOctave heightNoise;
+	private final MapConfig config;
+	private final MapGenerator generator;
+	private final int xSize, ySize, xCenter, yCenter;
+	private final float[][] heightmap;
 	
 	/**
-	 * 
-	 * @param seed
+	 * @param generator
 	 */
-	public Map(AppConfig config) {
+	public Map(MapConfig config, MapGenerator generator, int xSize, int ySize, int xCenter, int yCenter) {
 		
-		this.mapConfig = config.getMapConfig();
+		this.config = config;
+		this.generator = generator;
+		this.xSize = xSize;
+		this.ySize = ySize;
+		this.xCenter = xCenter;
+		this.yCenter = yCenter;
 		
-		LOG.info("Map: seed=\"{}\", largest-feature={}, persistence={}", config.getSeed(),
-				mapConfig.getLargestFeature(), mapConfig.getPersistence());
+		this.heightmap = new float[xSize][ySize];
 		
-		this.heightNoise = new SimplexOctave(config.getSeed().hashCode(), (double) mapConfig.getLargestFeature(),
-				mapConfig.getPersistence());
+		final int halfXSize = xSize / 2, halfYSize = ySize / 2;
+		for (int x = 0; x < xSize; x++)
+			for (int y = 0; y < ySize; y++) {
+				heightmap[x][y] = (float) generator.getHeightFrac(x + xCenter - halfXSize, y + yCenter - halfYSize);
+			}
 	}
 	
 	/**
-	 * Return this Map's height (on the interval
-	 * <code>[{@link #getLowAltitude()}, {@link #getHighAltitude()}]</code>
+	 * Generate the neighboring {@link Map}, equal in size to this Map, in the
+	 * direction ({@code xDir,yDir}), where only the <em>signs</em> of
+	 * ({@code xDir,yDir}) matter. For ({@code 0,0}), this method returns this same
+	 * Map instance.
 	 * 
-	 * @param x
-	 * @param y
+	 * @param xDir
+	 * @param yDir
 	 * @return
 	 */
-	public double getHeight(double x, double y) {
+	public Map generateNextRegion(int xDir, int yDir) {
 		
-		final double low = (double) mapConfig.getLowAltitude(), high = (double) mapConfig.getHighAltitude();
-		return getHeightFrac(x, y) * (high - low) + low;
+		if (xDir == 0 && yDir == 0)
+			return this;
+		
+		xDir = (xDir < 0) ? -1 : (xDir > 0) ? +1 : 0;
+		yDir = (yDir < 0) ? -1 : (yDir > 0) ? +1 : 0;
+		
+		return new Map(config, generator, xSize, ySize, xCenter + (xSize * xDir), yCenter + (ySize * yDir));
+		
 	}
 	
-	/**
-	 * Return this Map's height (on the interval <code>[0, 1]</code>).
-	 * 
-	 * @param x
-	 * @param y
-	 * @return
-	 */
-	public double getHeightFrac(double x, double y) {
-		
-		return (heightNoise.noise(x, y) + 1d) / 2d;
-	}
 }

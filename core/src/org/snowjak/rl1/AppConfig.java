@@ -13,8 +13,8 @@ import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.snowjak.rl1.drawing.ascii.AsciiFont;
 import org.snowjak.rl1.map.MapConfig;
+import org.snowjak.rl1.screen.AsciiFont;
 import org.snowjak.rl1.util.Converters;
 
 import com.badlogic.gdx.utils.Disposable;
@@ -40,14 +40,15 @@ public class AppConfig implements Disposable {
 	private static final String KEY_FONT_FILENAME = "font.filename", KEY_FONT_WIDTH = "font.width",
 			KEY_FONT_HEIGHT = "font.height";
 	
+	private static final String KEY_WINDOW_WIDTH = "window.width", KEY_WINDOW_HEIGHT = "window.height";
 	private static final String KEY_SCREEN_WIDTH = "screen.width", KEY_SCREEN_HEIGHT = "screen.height";
 	
 	private static final String KEY_SEED = "seed";
 	
-	private static final String KEY_MAP_LARGEST_FEATURE = "map.features.largest";
-	private static final String KEY_MAP_PERSISTENCE = "map.features.persistence";
-	private static final String KEY_MAP_LOWEST_ALTITUDE = "map.features.lowest",
-			KEY_MAP_HIGHEST_ALTITUDE = "map.features.highest";
+	private static final String KEY_MAP_LARGEST_FEATURE = "mapGenerator.features.largest";
+	private static final String KEY_MAP_PERSISTENCE = "mapGenerator.features.persistence";
+	private static final String KEY_MAP_LOWEST_ALTITUDE = "mapGenerator.features.lowest",
+			KEY_MAP_HIGHEST_ALTITUDE = "mapGenerator.features.highest";
 	
 	private int parallelism = Runtime.getRuntime().availableProcessors();
 	
@@ -57,8 +58,10 @@ public class AppConfig implements Disposable {
 	
 	private transient AsciiFont asciiFont = null;
 	
-	private int screenWidth = 80;
-	private int screenHeight = 25;
+	private int windowWidth = 630;
+	private int windowHeight = 420;
+	private int screenWidth = 60;
+	private int screenHeight = 40;
 	
 	private String seed = "";
 	
@@ -115,6 +118,40 @@ public class AppConfig implements Disposable {
 	public void setParallelism(int parallelism) {
 		
 		this.parallelism = parallelism;
+	}
+	
+	/**
+	 * @return the windowWidth
+	 */
+	public int getWindowWidth() {
+		
+		return windowWidth;
+	}
+	
+	/**
+	 * @param windowWidth
+	 *            the windowWidth to set
+	 */
+	public void setWindowWidth(int windowWidth) {
+		
+		this.windowWidth = windowWidth;
+	}
+	
+	/**
+	 * @return the windowHeight
+	 */
+	public int getWindowHeight() {
+		
+		return windowHeight;
+	}
+	
+	/**
+	 * @param windowHeight
+	 *            the windowHeight to set
+	 */
+	public void setWindowHeight(int windowHeight) {
+		
+		this.windowHeight = windowHeight;
 	}
 	
 	/**
@@ -260,6 +297,9 @@ public class AppConfig implements Disposable {
 					
 				}
 				
+				getConfig(p, KEY_WINDOW_WIDTH, this::getWindowWidth, this::setWindowWidth, Integer.class);
+				getConfig(p, KEY_WINDOW_HEIGHT, this::getWindowHeight, this::setWindowHeight, Integer.class);
+				
 				getConfig(p, KEY_SCREEN_WIDTH, this::getScreenWidth, this::setScreenWidth, Integer.class);
 				getConfig(p, KEY_SCREEN_HEIGHT, this::getScreenHeight, this::setScreenHeight, Integer.class);
 				
@@ -297,6 +337,9 @@ public class AppConfig implements Disposable {
 			setConfig(p, KEY_FONT_FILENAME, this::getFontFile);
 			setConfig(p, KEY_FONT_WIDTH, this::getFontWidth);
 			setConfig(p, KEY_FONT_HEIGHT, this::getFontHeight);
+			
+			setConfig(p, KEY_WINDOW_WIDTH, this::getWindowWidth);
+			setConfig(p, KEY_WINDOW_HEIGHT, this::getWindowHeight);
 			
 			setConfig(p, KEY_SCREEN_WIDTH, this::getScreenWidth);
 			setConfig(p, KEY_SCREEN_HEIGHT, this::getScreenHeight);

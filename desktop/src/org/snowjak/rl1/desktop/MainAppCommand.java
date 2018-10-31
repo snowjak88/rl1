@@ -39,6 +39,8 @@ public class MainAppCommand implements Runnable {
 		appConfig.setFontFile(options.fontFile);
 		appConfig.setFontWidth(options.fontWidth);
 		appConfig.setFontHeight(options.fontHeight);
+		appConfig.setWindowWidth(options.windowWidth);
+		appConfig.setWindowHeight(options.windowHeight);
 		appConfig.setScreenWidth(options.screenWidth);
 		appConfig.setScreenHeight(options.screenHeight);
 		
@@ -51,7 +53,11 @@ public class MainAppCommand implements Runnable {
 		mapConfig.setLowAltitude(standardOptions.getMapLowestAltitude());
 		mapConfig.setHighAltitude(standardOptions.getMapHighestAltitude());
 		
-		new LwjglApplication(new App(appConfig), new LwjglApplicationConfiguration());
+		final LwjglApplicationConfiguration lwjglConfig = new LwjglApplicationConfiguration();
+		lwjglConfig.width = appConfig.getWindowWidth();
+		lwjglConfig.height = appConfig.getWindowHeight();
+		
+		new LwjglApplication(new App(appConfig), lwjglConfig);
 	}
 	
 	public static class Options {
@@ -64,6 +70,12 @@ public class MainAppCommand implements Runnable {
 		
 		@Option(names = "--font-height", paramLabel = "FONT-HEIGHT", description = "Font character-height. Must be appropriate to given font-filename.", defaultValue = "12")
 		private Integer fontHeight = 12;
+		
+		@Option(names = "--window-width", paramLabel = "WIDTH-IN-PIXELS", description = "Window width (pixels).", defaultValue = "630")
+		private int windowWidth = 630;
+		
+		@Option(names = "--window-height", paramLabel = "HEIGHT-IN-PIXELS", description = "Window height (pixels).", defaultValue = "420")
+		private int windowHeight = 420;
 		
 		@Option(names = "--screen-width", paramLabel = "WIDTH-IN-CHARS", description = "Screen width (#/chars).", defaultValue = "80")
 		private int screenWidth = 80;

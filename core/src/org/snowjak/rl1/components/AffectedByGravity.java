@@ -9,9 +9,7 @@ import com.artemis.PooledComponent;
  * @author snowjak88
  *
  */
-public class HasPosition extends PooledComponent {
-	
-	public float x = 0, y = 0;
+public class AffectedByGravity extends PooledComponent {
 	
 	/*
 	 * (non-Javadoc)
@@ -21,8 +19,6 @@ public class HasPosition extends PooledComponent {
 	@Override
 	protected void reset() {
 		
-		x = 0;
-		y = 0;
 	}
 	
 }
