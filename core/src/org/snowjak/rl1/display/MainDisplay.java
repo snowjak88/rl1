@@ -6,7 +6,7 @@ package org.snowjak.rl1.display;
 import org.snowjak.rl1.Context;
 import org.snowjak.rl1.map.MapGenerator;
 import org.snowjak.rl1.screen.AsciiScreen;
-import org.snowjak.rl1.screen.AsciiScreen.RegionAlignment;
+import org.snowjak.rl1.screen.AsciiScreen.Region;
 
 /**
  * @author snowjak88
@@ -27,7 +27,7 @@ public class MainDisplay extends AbstractDisplay {
 		super(new AsciiScreen(Context.get().appConfig().getFont()), null, false, null, true);
 		
 		mapDisplay = new MapScrollingDisplay(new MapGenerator(Context.get().appConfig()),
-				getScreen().getRegion(RegionAlignment.LEFT_70)) {
+				getScreen().getSubscreen(Region.LEFT_70)) {
 			
 			@Override
 			public void drawAfterMap(AsciiScreen screen) {
@@ -35,8 +35,8 @@ public class MainDisplay extends AbstractDisplay {
 			}
 		};
 		
-		statusDisplay = new AbstractDisplay(getScreen().getRegion(RegionAlignment.RIGHT_30), "Status", false,
-				BorderType.DOUBLE_LINE, false) {
+		statusDisplay = new AbstractDisplay(getScreen().getSubscreen(Region.RIGHT_30), "Status", true, BorderType.BLOCK,
+				false) {
 			
 			@Override
 			public void drawContent(AsciiScreen screen) {

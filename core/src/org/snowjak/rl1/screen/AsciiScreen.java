@@ -3,18 +3,23 @@
  */
 package org.snowjak.rl1.screen;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.BiConsumer;
 
 import org.snowjak.rl1.screen.AsciiScreen.ResizeEvent;
 import org.snowjak.rl1.util.IntPair;
-import org.snowjak.rl1.util.Listenable;
+import org.snowjak.rl1.util.listener.Event;
+import org.snowjak.rl1.util.listener.Listenable;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.math.Matrix4;
 
 /**
  * Implements an ASCII display on LibGdx.
@@ -27,9 +32,8 @@ public class AsciiScreen extends ScreenAdapter implements Listenable<ResizeEvent
 	public static final Color DEFAULT_FOREGROUND = Color.LIGHT_GRAY;
 	public static final Color DEFAULT_BACKGROUND = Color.BLACK;
 	
+	private final Map<AsciiScreen.Region, AsciiScreenRegion> regions = new HashMap<>();
 	private final SpriteBatch screenBatch;
-	private final boolean allocateBuffers;
-	
 	private final EventRouter eventRouter = new EventRouter();
 	
 	private AsciiFont font;
@@ -39,10 +43,9 @@ public class AsciiScreen extends ScreenAdapter implements Listenable<ResizeEvent
 	
 	private int pixelWidth = 0, pixelHeight = 0;
 	private int width = 0, height = 0;
+	private float renderScale = 1;
 	private char[][] buffer;
 	private Color[][][] colors;
-	
-	private float renderScale = 1;
 	
 	/**
 	 * Construct a new {@link AsciiScreen} using the specified {@link AsciiFont}.
@@ -53,14 +56,8 @@ public class AsciiScreen extends ScreenAdapter implements Listenable<ResizeEvent
 	 */
 	public AsciiScreen(AsciiFont font) {
 		
-		this(font, true);
-	}
-	
-	protected AsciiScreen(AsciiFont font, boolean allocateBuffers) {
-		
 		assert (font != null);
 		
-		this.allocateBuffers = allocateBuffers;
 		this.font = font;
 		this.cursor = new IntPair(0, 0);
 		this.screenBatch = new SpriteBatch(8191);
@@ -74,32 +71,46 @@ public class AsciiScreen extends ScreenAdapter implements Listenable<ResizeEvent
 	@Override
 	public void render(float delta) {
 		
-		final TextureRegion fillTex = font.getChar((char) 219);
-		
+		Gdx.gl.glClearColor(DEFAULT_BACKGROUND.r, DEFAULT_BACKGROUND.g, DEFAULT_BACKGROUND.b, DEFAULT_BACKGROUND.a);
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+		
+		renderContent(screenBatch, 8190);
+	}
+	
+	protected void renderContent(Batch screenBatch, int batchBufferSize) {
+		
 		screenBatch.begin();
+		
+		final TextureRegion fillTex = font.getChar((char) 219);
 		
 		int i = 0;
 		for (int x = 0; x < width; x++)
 			for (int y = 0; y < height; y++) {
 				
-				final TextureRegion charTex = font.getChar(get(x, y));
+				final char currentChar = get(x, y);
+				final TextureRegion charTex = font.getChar(currentChar);
 				
 				final float screenX = (float) x * (float) font.getCharWidth() / renderScale;
 				final float screenY = (float) (getHeightInChars() - y - 1) * (float) font.getCharHeight() / renderScale;
 				
-				screenBatch.setColor(colors[x][y][1]);
-				screenBatch.draw(fillTex, screenX, screenY, (float) font.getCharWidth() / renderScale,
-						(float) font.getCharHeight() / renderScale);
+				if (colors[x][y][1] != DEFAULT_BACKGROUND) {
+					screenBatch.setColor(colors[x][y][1]);
+					screenBatch.draw(fillTex, screenX, screenY, (float) font.getCharWidth() / renderScale,
+							(float) font.getCharHeight() / renderScale);
+					i++;
+				}
 				
-				screenBatch.enableBlending();
-				screenBatch.setColor(colors[x][y][0]);
-				screenBatch.draw(charTex, screenX, screenY, (float) font.getCharWidth() / renderScale,
-						(float) font.getCharHeight() / renderScale);
-				screenBatch.disableBlending();
+				if (currentChar != 0) {
+					
+					screenBatch.enableBlending();
+					screenBatch.setColor(colors[x][y][0]);
+					screenBatch.draw(charTex, screenX, screenY, (float) font.getCharWidth() / renderScale,
+							(float) font.getCharHeight() / renderScale);
+					i++;
+					screenBatch.disableBlending();
+				}
 				
-				i += 2;
-				if (i >= 8190) {
+				if (i >= batchBufferSize) {
 					screenBatch.end();
 					screenBatch.begin();
 					i = 0;
@@ -107,6 +118,19 @@ public class AsciiScreen extends ScreenAdapter implements Listenable<ResizeEvent
 			}
 		
 		screenBatch.end();
+		
+		//
+		//
+		//
+		regions.forEach((r, asr) -> {
+			
+			final Matrix4 prevTransform = screenBatch.getTransformMatrix();
+			
+			screenBatch.setTransformMatrix(asr.offset);
+			asr.renderContent(screenBatch, batchBufferSize);
+			
+			screenBatch.setTransformMatrix(prevTransform);
+		});
 	}
 	
 	/*
@@ -119,6 +143,7 @@ public class AsciiScreen extends ScreenAdapter implements Listenable<ResizeEvent
 		
 		screenBatch.dispose();
 		font.dispose();
+		regions.forEach((r, asr) -> asr.dispose());
 	}
 	
 	public void setScale(float scale) {
@@ -126,6 +151,7 @@ public class AsciiScreen extends ScreenAdapter implements Listenable<ResizeEvent
 		assert (scale > 0);
 		
 		this.renderScale = scale;
+		this.regions.forEach((r, s) -> s.setScale(scale));
 		
 		this.resize(pixelWidth, pixelHeight);
 	}
@@ -156,24 +182,29 @@ public class AsciiScreen extends ScreenAdapter implements Listenable<ResizeEvent
 		
 		rebuildBuffers();
 		
+		this.regions.forEach((r, s) -> r.apply(this, s));
+		
 		fireEvent(new ResizeEvent(width, height));
 	}
 	
 	private void rebuildBuffers() {
 		
-		if (allocateBuffers) {
-			this.buffer = new char[width][height];
-			this.colors = new Color[width][height][2];
-			
-			for (int x = 0; x < width; x++)
-				for (int y = 0; y < height; y++) {
-					this.colors[x][y][0] = DEFAULT_FOREGROUND;
-					this.colors[x][y][1] = DEFAULT_BACKGROUND;
-				}
-		} else {
-			this.buffer = null;
-			this.colors = null;
-		}
+		if (width <= 0 || height <= 0)
+			return;
+		
+		this.buffer = new char[width][height];
+		this.colors = new Color[width][height][2];
+		
+		final IntPair prevCursor = getCursor();
+		
+		for (int x = 0; x < width; x++)
+			for (int y = 0; y < height; y++) {
+				cursor(x, y);
+				color(DEFAULT_FOREGROUND, DEFAULT_BACKGROUND);
+				put((char) 0);
+			}
+		
+		cursor(prevCursor.getFirst(), prevCursor.getSecond());
 	}
 	
 	/**
@@ -383,6 +414,16 @@ public class AsciiScreen extends ScreenAdapter implements Listenable<ResizeEvent
 		return height;
 	}
 	
+	public int getWidthInPixels() {
+		
+		return pixelWidth;
+	}
+	
+	public int getHeightInPixels() {
+		
+		return pixelHeight;
+	}
+	
 	/**
 	 * @return
 	 */
@@ -416,20 +457,23 @@ public class AsciiScreen extends ScreenAdapter implements Listenable<ResizeEvent
 	}
 	
 	/**
-	 * Construct an {@link AsciiScreenRegion} delegating to a specific region of
-	 * this {@link AsciiScreen}.
+	 * Get an {@link AsciiScreen} instance drawing to the given {@link Region} of
+	 * this AsciiScreen. If an AsciiScreen has not already been allocated for that
+	 * region, this method will create a new one.
 	 * 
-	 * @param alignment
+	 * @param region
 	 * @return
 	 */
-	public AsciiScreenRegion getRegion(RegionAlignment alignment) {
+	public AsciiScreenRegion getSubscreen(AsciiScreen.Region region) {
 		
-		return new AsciiScreenRegion(this, alignment.resizer);
-	}
-	
-	public AsciiScreenRegion getRegion(BiConsumer<AsciiScreen, AsciiScreenRegion> resizer) {
+		if (!regions.containsKey(region)) {
+			final AsciiScreenRegion subscreen = new AsciiScreenRegion(getFont());
+			subscreen.setScale(renderScale);
+			regions.put(region, subscreen);
+			region.apply(this, subscreen);
+		}
 		
-		return new AsciiScreenRegion(this, resizer);
+		return regions.get(region);
 	}
 	
 	/*
@@ -443,131 +487,126 @@ public class AsciiScreen extends ScreenAdapter implements Listenable<ResizeEvent
 		return eventRouter;
 	}
 	
-	public enum RegionAlignment {
+	public enum Region {
 		/**
 		 * The {@link AsciiScreenRegion} is set up to occupy the left-most 30% of its
 		 * parent {@link AsciiScreen}.
 		 */
 		LEFT_30((s, r) -> {
-			// final float width = (float) s.pixelWidth * s.getScale() * (float)
-			// s.font.getCharWidth();
-			// final float height = (float) s.height * s.getScale() * (float)
-			// s.font.getCharHeight();
-			r.resize((int) (0.3 * (float) s.pixelWidth), s.pixelHeight);
-			r.setScale(s.getScale());
-			r.setStart(0, 0);
+			final int regionPixelWidth = (int) ((float) s.getWidthInPixels() * 0.3);
+			final int regionPixelHeight = s.getHeightInPixels();
+			
+			r.resize(regionPixelWidth, regionPixelHeight);
+			r.offset = new Matrix4();
 		}),
-		
 		/**
 		 * The {@link AsciiScreenRegion} is set up to occupy the left-most 70% of its
 		 * parent {@link AsciiScreen}.
 		 */
 		LEFT_70((s, r) -> {
-			// final float width = (float) s.width * s.getScale() * (float)
-			// s.font.getCharWidth();
-			// final float height = (float) s.height * s.getScale() * (float)
-			// s.font.getCharHeight();
-			r.resize((int) (0.7 * (float) s.pixelWidth), s.pixelHeight);
-			r.setScale(s.getScale());
-			r.setStart(0, 0);
+			final int regionPixelWidth = (int) ((float) s.getWidthInPixels() * 0.7);
+			final int regionPixelHeight = s.getHeightInPixels();
+			
+			r.resize(regionPixelWidth, regionPixelHeight);
+			r.offset = new Matrix4();
 		}),
 		/**
 		 * The {@link AsciiScreenRegion} is set up to occupy the right-most 30% of its
 		 * parent {@link AsciiScreen}.
 		 */
 		RIGHT_30((s, r) -> {
-			// final float width = (float) s.width * s.getScale() * (float)
-			// s.font.getCharWidth();
-			// final float height = (float) s.height * s.getScale() * (float)
-			// s.font.getCharHeight();
-			r.resize((int) (0.3 * (float) s.pixelWidth), s.pixelHeight);
-			r.setScale(s.getScale());
-			r.setStart((int) (0.7 * (float) s.getWidthInChars()), 0);
+			final int regionPixelWidth = (int) ((float) s.getWidthInPixels() * 0.3);
+			final int regionPixelHeight = s.getHeightInPixels();
+			final int regionOffsetX = s.getWidthInPixels() - regionPixelWidth;
+			
+			r.resize(regionPixelWidth, regionPixelHeight);
+			r.offset = new Matrix4().setToTranslation(regionOffsetX, 0, 0);
 		}),
 		/**
 		 * The {@link AsciiScreenRegion} is set up to occupy the right-most 70% of its
 		 * parent {@link AsciiScreen}.
 		 */
 		RIGHT_70((s, r) -> {
-			// final float width = (float) s.width * s.getScale() * (float)
-			// s.font.getCharWidth();
-			// final float height = (float) s.height * s.getScale() * (float)
-			// s.font.getCharHeight();
-			r.resize((int) (0.7 * (float) s.pixelWidth), s.pixelHeight);
-			r.setStart((int) (0.3 * (float) s.getWidthInChars()), 0);
+			final int regionPixelWidth = (int) ((float) s.getWidthInPixels() * 0.7);
+			final int regionPixelHeight = s.getHeightInPixels();
+			final int regionOffsetX = s.getWidthInPixels() - regionPixelWidth;
+			
+			r.resize(regionPixelWidth, regionPixelHeight);
+			r.offset = new Matrix4().setToTranslation(regionOffsetX, 0, 0);
 		}),
 		/**
 		 * The {@link AsciiScreenRegion} is set up to occupy the top-most 30% of its
 		 * parent {@link AsciiScreen}.
 		 */
 		TOP_30((s, r) -> {
-			// final float width = (float) s.width * s.getScale() * (float)
-			// s.font.getCharWidth();
-			// final float height = (float) s.height * s.getScale() * (float)
-			// s.font.getCharHeight();
-			r.resize(s.pixelWidth, (int) (0.3 * (float) s.pixelHeight));
-			r.setStart(0, 0);
+			final int regionPixelWidth = s.getWidthInPixels();
+			final int regionPixelHeight = (int) ((float) s.getHeightInPixels() * 0.3);
+			
+			r.resize(regionPixelWidth, regionPixelHeight);
+			r.offset = new Matrix4();
 		}),
 		/**
 		 * The {@link AsciiScreenRegion} is set up to occupy the top-most 70% of its
 		 * parent {@link AsciiScreen}.
 		 */
 		TOP_70((s, r) -> {
-			// final float width = (float) s.width * s.getScale() * (float)
-			// s.font.getCharWidth();
-			// final float height = (float) s.height * s.getScale() * (float)
-			// s.font.getCharHeight();
-			r.resize(s.pixelWidth, (int) (0.7 * (float) s.pixelHeight));
-			r.setStart(0, 0);
+			final int regionPixelWidth = s.getWidthInPixels();
+			final int regionPixelHeight = (int) ((float) s.getHeightInPixels() * 0.7);
+			
+			r.resize(regionPixelWidth, regionPixelHeight);
+			r.offset = new Matrix4();
 		}),
 		/**
 		 * The {@link AsciiScreenRegion} is set up to occupy the bottom-most 30% of its
 		 * parent {@link AsciiScreen}.
 		 */
 		BOTTOM_30((s, r) -> {
-			// final float width = (float) s.width * s.getScale() * (float)
-			// s.font.getCharWidth();
-			// final float height = (float) s.height * s.getScale() * (float)
-			// s.font.getCharHeight();
-			r.resize(s.pixelWidth, (int) (0.3 * (float) s.pixelHeight));
-			r.setStart(0, (int) (0.7 * (float) s.getHeightInChars()));
+			final int regionPixelWidth = s.getWidthInPixels();
+			final int regionPixelHeight = (int) ((float) s.getHeightInPixels() * 0.3);
+			final int regionOffsetY = s.getHeightInPixels() - regionPixelHeight;
+			
+			r.resize(regionPixelWidth, regionPixelHeight);
+			r.offset = new Matrix4().setToTranslation(0, regionOffsetY, 0);
 		}),
 		/**
 		 * The {@link AsciiScreenRegion} is set up to occupy the bottom-most 70% of its
 		 * parent {@link AsciiScreen}.
 		 */
 		BOTTOM_70((s, r) -> {
-			// final float width = (float) s.width * s.getScale() * (float)
-			// s.font.getCharWidth();
-			// final float height = (float) s.height * s.getScale() * (float)
-			// s.font.getCharHeight();
-			r.resize(s.pixelWidth, (int) (0.7 * (float) s.pixelHeight));
-			r.setStart(0, (int) (0.3 * (float) s.getHeightInChars()));
+			final int regionPixelWidth = s.getWidthInPixels();
+			final int regionPixelHeight = (int) ((float) s.getHeightInPixels() * 0.7);
+			final int regionOffsetY = s.getHeightInPixels() - regionPixelHeight;
+			
+			r.resize(regionPixelWidth, regionPixelHeight);
+			r.offset = new Matrix4().setToTranslation(0, regionOffsetY, 0);
 		}),
 		/**
 		 * The {@link AsciiScreenRegion} is set up to occupy a centered area, 50% of the
 		 * width/height of its parent {@link AsciiScreen}.
 		 */
 		CENTER_50((s, r) -> {
-			// final float width = (float) s.width * s.getScale() * (float)
-			// s.font.getCharWidth();
-			// final float height = (float) s.height * s.getScale() * (float)
-			// s.font.getCharHeight();
-			r.resize((int) ((float) s.pixelWidth * 0.5), (int) ((float) s.pixelHeight * 0.5));
-			r.setStart((int) (0.25 * (float) s.getWidthInChars()), (int) (0.25 * (float) s.getHeightInChars()));
+			final int regionPixelWidth = (int) ((float) s.getWidthInPixels() * 0.5);
+			final int regionPixelHeight = (int) ((float) s.getHeightInPixels() * 0.5);
+			final int regionOffsetX = (s.getWidthInPixels() - regionPixelWidth) / 2;
+			final int regionOffsetY = (s.getHeightInPixels() - regionPixelHeight) / 2;
+			
+			r.resize(regionPixelWidth, regionPixelHeight);
+			r.offset = new Matrix4().setToTranslation(regionOffsetX, regionOffsetY, 0);
 		}),
 		/**
 		 * The {@link AsciiScreenRegion} is set up to occupy the entirity of the parent
 		 * AsciiScreen excepting a border of 1 character's width.
 		 */
 		CENTER_MINUS_1((s, r) -> {
+			final int regionPixelWidth = (int) ((float) s.getWidthInPixels()
+					- ((float) s.font.getCharWidth() * 2f / s.renderScale));
+			final int regionPixelHeight = (int) ((float) s.getHeightInPixels()
+					- ((float) s.font.getCharHeight() * 2f / s.renderScale));
+			final int regionOffsetX = (s.getWidthInPixels() - regionPixelWidth) / 2;
+			final int regionOffsetY = (s.getHeightInPixels() - regionPixelHeight) / 2;
 			
-			final float widthInChars = (float) s.pixelWidth * s.renderScale / (float) s.font.getCharWidth() - 2;
-			final float heightInChars = (float) s.pixelHeight * s.renderScale / (float) s.font.getCharHeight() - 2;
-			final int widthInPixels = (int) (widthInChars * (float) s.font.getCharWidth() / s.renderScale);
-			final int heightInPixels = (int) (heightInChars * (float) s.font.getCharHeight() / s.renderScale);
-			r.resize(widthInPixels, heightInPixels);
-			r.setStart(1, 1);
+			r.resize(regionPixelWidth, regionPixelHeight);
+			r.offset = new Matrix4().setToTranslation(regionOffsetX, regionOffsetY, 0);
 		});
 		
 		private final BiConsumer<AsciiScreen, AsciiScreenRegion> resizer;
@@ -575,121 +614,31 @@ public class AsciiScreen extends ScreenAdapter implements Listenable<ResizeEvent
 		/**
 		 * @param resizer
 		 */
-		private RegionAlignment(BiConsumer<AsciiScreen, AsciiScreenRegion> resizer) {
+		private Region(BiConsumer<AsciiScreen, AsciiScreenRegion> resizer) {
 			
 			this.resizer = resizer;
 		}
 		
+		public void apply(AsciiScreen screen, AsciiScreenRegion region) {
+			
+			this.resizer.accept(screen, region);
+		}
 	}
 	
-	/**
-	 * Gives access to a specific region of an existing AsciiScreen. Writes made to
-	 * this region are clipped to the specified region
-	 * <code>(startX,startY) - (endX,endY)</code>.
-	 * 
-	 * @author snowjak88
-	 *
-	 */
 	public static class AsciiScreenRegion extends AsciiScreen {
 		
-		private final AsciiScreen screen;
-		private final BiConsumer<AsciiScreen, AsciiScreenRegion> resizer;
-		private final Registration resizeEventRegistration;
-		
-		private int startX, startY;
+		private Matrix4 offset = new Matrix4();
 		
 		/**
-		 * @param screen
-		 * @param startX
-		 * @param startY
-		 * @param endX
-		 * @param endY
+		 * @param font
 		 */
-		public AsciiScreenRegion(AsciiScreen screen, BiConsumer<AsciiScreen, AsciiScreenRegion> resizer) {
+		public AsciiScreenRegion(AsciiFont font) {
 			
-			super(screen.getFont(), false);
-			this.screen = screen;
-			this.resizer = resizer;
-			this.resizeEventRegistration = screen.addListener(this, "handleResizeEvent");
+			super(font);
 		}
-		
-		public void handleResizeEvent(ResizeEvent e) {
-			
-			this.resizer.accept(screen, this);
-		}
-		
-		/**
-		 * Update the "start-point", where the upper-left corner of the region lies
-		 * within its parent AsciiScreen.
-		 * 
-		 * @param startX
-		 * @param startY
-		 */
-		public void setStart(int startX, int startY) {
-			
-			this.startX = startX;
-			this.startY = startY;
-		}
-		
-		/*
-		 * (non-Javadoc)
-		 * 
-		 * @see org.snowjak.rl1.screen.AsciiScreen#put(char)
-		 */
-		@Override
-		public void put(char c) {
-			
-			final Color prevForeground = screen.getForegroundColor(), prevBackground = screen.getBackgroundColor();
-			final IntPair prevCursor = screen.getCursor();
-			screen.color(getForegroundColor(), getBackgroundColor());
-			
-			screen.cursor(getCursor().getFirst() + startX, getCursor().getSecond() + startY);
-			screen.put(c);
-			
-			screen.cursor(prevCursor.getFirst(), prevCursor.getSecond());
-			screen.color(prevForeground, prevBackground);
-		}
-		
-		/*
-		 * (non-Javadoc)
-		 * 
-		 * @see org.snowjak.rl1.drawing.ascii.AsciiScreen#get(int, int)
-		 */
-		@Override
-		public char get(int x, int y) {
-			
-			if (!isOnScreen(x, y))
-				return 0;
-			
-			return screen.get(x + startX, y + startY);
-		}
-		
-		/*
-		 * (non-Javadoc)
-		 * 
-		 * @see org.snowjak.rl1.drawing.ascii.AsciiScreen#render(float)
-		 */
-		@Override
-		public void render(float delta) {
-			
-			screen.render(delta);
-		}
-		
-		/*
-		 * (non-Javadoc)
-		 * 
-		 * @see org.snowjak.rl1.screen.AsciiScreen#dispose()
-		 */
-		@Override
-		public void dispose() {
-			
-			super.dispose();
-			resizeEventRegistration.remove();
-		}
-		
 	}
 	
-	public static class ResizeEvent implements Listenable.Event {
+	public static class ResizeEvent implements Event {
 		
 		@SuppressWarnings("unused")
 		private final int width, height;

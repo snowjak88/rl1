@@ -319,7 +319,7 @@ public abstract class MapScrollingDisplay extends AbstractDisplay implements Scr
 		return mapGenerator;
 	}
 	
-	public static class MapScrollingDisplayInputProcessor extends AbstractDisplay.DisplayInputProcessor {
+	public static class MapScrollingDisplayInputProcessor extends DisplayInputProcessor {
 		
 		public static final int MAP_SCROLLING_DISPLAY_INPUT_PRIORITY = 16;
 		

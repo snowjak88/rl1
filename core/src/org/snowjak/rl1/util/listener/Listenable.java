@@ -1,7 +1,7 @@
 /**
  * 
  */
-package org.snowjak.rl1.util;
+package org.snowjak.rl1.util.listener;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -10,7 +10,6 @@ import java.util.LinkedList;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.snowjak.rl1.util.Listenable.Event;
 
 /**
  * @author snowjak88
@@ -43,10 +42,6 @@ public interface Listenable<T extends Event> {
 	public default <V extends T> void fireEvent(V event) {
 		
 		getEventRouter().handleEvent(event);
-	}
-	
-	public interface Event {
-		
 	}
 	
 	@FunctionalInterface
