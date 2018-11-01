@@ -62,8 +62,8 @@ public class MapGenerator {
 		return (heightNoise.noise(x, y) + 1d) / 2d;
 	}
 	
-	public Map generate(int xSize, int ySize, int xCenter, int yCenter) {
+	public MapChunk generate(int xSize, int ySize, int xCenter, int yCenter) {
 		
-		return new Map(mapConfig, this, xSize, ySize, xCenter, yCenter);
+		return new MapChunk(mapConfig, this, xSize, ySize, xCenter, yCenter);
 	}
 }

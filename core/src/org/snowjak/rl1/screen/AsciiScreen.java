@@ -35,6 +35,7 @@ public class AsciiScreen extends ScreenAdapter implements Listenable<ResizeEvent
 	private final Map<AsciiScreen.Region, AsciiScreenRegion> regions = new HashMap<>();
 	private final SpriteBatch screenBatch;
 	private final EventRouter eventRouter = new EventRouter();
+	private final boolean canBeRescaled;
 	
 	private AsciiFont font;
 	private Color foregroundColor = DEFAULT_FOREGROUND, backgroundColor = DEFAULT_BACKGROUND;
@@ -50,14 +51,16 @@ public class AsciiScreen extends ScreenAdapter implements Listenable<ResizeEvent
 	/**
 	 * Construct a new {@link AsciiScreen} using the specified {@link AsciiFont}.
 	 * 
-	 * @param widthInChars
-	 * @param heightInChars
 	 * @param font
+	 * @param canBeRescaled
+	 *            if this screen should respond to calls to
+	 *            {@link #setScale(float)}, or if such calls should be ignored
 	 */
-	public AsciiScreen(AsciiFont font) {
+	public AsciiScreen(AsciiFont font, boolean canBeRescaled) {
 		
 		assert (font != null);
 		
+		this.canBeRescaled = canBeRescaled;
 		this.font = font;
 		this.cursor = new IntPair(0, 0);
 		this.screenBatch = new SpriteBatch(8191);
@@ -124,9 +127,9 @@ public class AsciiScreen extends ScreenAdapter implements Listenable<ResizeEvent
 		//
 		regions.forEach((r, asr) -> {
 			
-			final Matrix4 prevTransform = screenBatch.getTransformMatrix();
+			final Matrix4 prevTransform = screenBatch.getTransformMatrix().cpy();
 			
-			screenBatch.setTransformMatrix(asr.offset);
+			screenBatch.setTransformMatrix(screenBatch.getTransformMatrix().mul(asr.offset));
 			asr.renderContent(screenBatch, batchBufferSize);
 			
 			screenBatch.setTransformMatrix(prevTransform);
@@ -148,6 +151,9 @@ public class AsciiScreen extends ScreenAdapter implements Listenable<ResizeEvent
 	
 	public void setScale(float scale) {
 		
+		if (!canBeRescaled)
+			return;
+		
 		assert (scale > 0);
 		
 		this.renderScale = scale;
@@ -159,6 +165,14 @@ public class AsciiScreen extends ScreenAdapter implements Listenable<ResizeEvent
 	public float getScale() {
 		
 		return renderScale;
+	}
+	
+	/**
+	 * @return the canBeRescaled
+	 */
+	public boolean canBeRescaled() {
+		
+		return canBeRescaled;
 	}
 	
 	/*
@@ -457,21 +471,41 @@ public class AsciiScreen extends ScreenAdapter implements Listenable<ResizeEvent
 	}
 	
 	/**
-	 * Get an {@link AsciiScreen} instance drawing to the given {@link Region} of
-	 * this AsciiScreen. If an AsciiScreen has not already been allocated for that
-	 * region, this method will create a new one.
+	 * Create an {@link AsciiScreen} instance drawing to the given {@link Region} of
+	 * this AsciiScreen. If an AsciiScreen has already been allocated for that
+	 * region, this method will first dispose of the pre-existing instance before
+	 * creating a new one.
 	 * 
 	 * @param region
 	 * @return
 	 */
-	public AsciiScreenRegion getSubscreen(AsciiScreen.Region region) {
+	public AsciiScreenRegion createSubscreen(AsciiScreen.Region region) {
 		
-		if (!regions.containsKey(region)) {
-			final AsciiScreenRegion subscreen = new AsciiScreenRegion(getFont());
-			subscreen.setScale(renderScale);
-			regions.put(region, subscreen);
-			region.apply(this, subscreen);
-		}
+		return createSubscreen(region, canBeRescaled);
+	}
+	
+	/**
+	 * Create an {@link AsciiScreen} instance drawing to the given {@link Region} of
+	 * this AsciiScreen. If an AsciiScreen has already been allocated for that
+	 * region, this method will first dispose of the pre-existing instance before
+	 * creating a new one.
+	 * 
+	 * @param region
+	 * @param canBeRescaled
+	 *            if the given {@link AsciiScreenRegion} should allow itself to be
+	 *            rescaled via {@link AsciiScreen#setScale(float)}, or if such calls
+	 *            should be ignored
+	 * @return
+	 */
+	public AsciiScreenRegion createSubscreen(AsciiScreen.Region region, boolean canBeRescaled) {
+		
+		if (regions.containsKey(region))
+			regions.get(region).dispose();
+		
+		final AsciiScreenRegion subscreen = new AsciiScreenRegion(getFont(), canBeRescaled);
+		subscreen.setScale(renderScale);
+		regions.put(region, subscreen);
+		region.apply(this, subscreen);
 		
 		return regions.get(region);
 	}
@@ -631,11 +665,13 @@ public class AsciiScreen extends ScreenAdapter implements Listenable<ResizeEvent
 		
 		/**
 		 * @param font
+		 * @param canBeRescaled
 		 */
-		public AsciiScreenRegion(AsciiFont font) {
+		public AsciiScreenRegion(AsciiFont font, boolean canBeRescaled) {
 			
-			super(font);
+			super(font, canBeRescaled);
 		}
+		
 	}
 	
 	public static class ResizeEvent implements Event {

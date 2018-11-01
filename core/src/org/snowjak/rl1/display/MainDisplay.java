@@ -24,10 +24,10 @@ public class MainDisplay extends AbstractDisplay {
 	 */
 	public MainDisplay() {
 		
-		super(new AsciiScreen(Context.get().appConfig().getFont()), null, false, null, true);
+		super(new AsciiScreen(Context.get().appConfig().getFont(), true), null, false, null, true);
 		
-		mapDisplay = new MapScrollingDisplay(new MapGenerator(Context.get().appConfig()),
-				getScreen().getSubscreen(Region.LEFT_70)) {
+		mapDisplay = new MapScrollingDisplay(new MapGenerator(Context.get().appConfig()).generate(128, 128, 0, 0),
+				getScreen().createSubscreen(Region.LEFT_70)) {
 			
 			@Override
 			public void drawAfterMap(AsciiScreen screen) {
@@ -35,8 +35,8 @@ public class MainDisplay extends AbstractDisplay {
 			}
 		};
 		
-		statusDisplay = new AbstractDisplay(getScreen().getSubscreen(Region.RIGHT_30), "Status", true, BorderType.BLOCK,
-				false) {
+		statusDisplay = new AbstractDisplay(getScreen().createSubscreen(Region.RIGHT_30, false), "Status", true,
+				BorderType.BLOCK, false) {
 			
 			@Override
 			public void drawContent(AsciiScreen screen) {
@@ -44,7 +44,7 @@ public class MainDisplay extends AbstractDisplay {
 				screen.color();
 				screen.clear();
 				screen.cursor(2, 2);
-				screen.write("Map scroll:");
+				screen.write("Map:");
 				screen.cursor(2, 3);
 				screen.write("    X: " + mapDisplay.scrollX);
 				screen.cursor(2, 4);

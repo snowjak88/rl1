@@ -31,6 +31,18 @@ public abstract class AbstractDisplay implements Screen {
 	 * Construct a new AbstractDisplay.
 	 * 
 	 * @param screen
+	 *            the {@link AsciiScreen} instance on which to render this display
+	 * @param title
+	 *            this display's title, if any, to display on the border (if
+	 *            enabled)
+	 * @param bordered
+	 *            is this display's border enabled?
+	 * @param borderType
+	 *            the {@link BorderType} to use
+	 * @param isRootDisplay
+	 *            is this a root-level display? (note that, if enabled, a
+	 *            {@link CommonDisplayInputProcessor} is automatically created and
+	 *            registered on behalf of this display)
 	 */
 	public AbstractDisplay(AsciiScreen screen, String title, boolean bordered, BorderType borderType,
 			boolean isRootDisplay) {
@@ -44,7 +56,7 @@ public abstract class AbstractDisplay implements Screen {
 		this.isActive = true;
 		
 		if (bordered)
-			this.contentScreen = screen.getSubscreen(Region.CENTER_MINUS_1);
+			this.contentScreen = screen.createSubscreen(Region.CENTER_MINUS_1);
 		else
 			this.contentScreen = screen;
 		
