@@ -56,38 +56,38 @@ public class DrawableProvider extends Provider<Drawable> {
 				if (!r.isArray())
 					throw new SerializationException();
 				
-				final ArrayList<ArrayList<Character>> xList = new ArrayList<>();
-				for (JsonValue x : r) {
-					if (!x.isArray())
+				final ArrayList<ArrayList<Character>> yList = new ArrayList<>();
+				for (JsonValue y : r) {
+					if (!y.isArray())
 						throw new SerializationException();
 					
-					final ArrayList<Character> yList = new ArrayList<>();
-					for (JsonValue y : x)
-						yList.add(y.asChar());
+					final ArrayList<Character> xList = new ArrayList<>();
+					for (JsonValue x : y)
+						xList.add(x.asChar());
 					
-					xList.add(yList);
+					yList.add(xList);
 				}
 				
-				rep.add(xList);
+				rep.add(yList);
 			}
 			
 			int rSize = rep.size(), xSize = 0, ySize = 0;
 			for (int r = 0; r < rep.size(); r++) {
-				if (rep.get(r).size() > xSize)
-					xSize = rep.get(r).size();
+				if (rep.get(r).size() > ySize)
+					ySize = rep.get(r).size();
 				
-				for (int x = 0; x < rep.get(r).size(); x++) {
-					if (rep.get(r).get(x).size() > ySize)
-						ySize = rep.get(r).get(x).size();
+				for (int y = 0; y < rep.get(r).size(); y++) {
+					if (rep.get(r).get(y).size() > xSize)
+						xSize = rep.get(r).get(y).size();
 				}
 			}
 			
-			d.representation = new char[rSize][xSize][ySize];
+			d.representation = new char[rSize][ySize][xSize];
 			
 			for (int r = 0; r < rep.size(); r++)
-				for (int x = 0; x < rep.get(r).size(); x++)
-					for (int y = 0; y < rep.get(r).get(x).size(); y++)
-						d.representation[r][x][y] = rep.get(r).get(x).get(y);
+				for (int y = 0; y < rep.get(r).size(); y++)
+					for (int x = 0; x < rep.get(r).get(y).size(); x++)
+						d.representation[r][x][y] = rep.get(r).get(y).get(x);
 						
 			//
 			//

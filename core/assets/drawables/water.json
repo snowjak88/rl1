@@ -1,6 +1,6 @@
 {
 	representation: [
-		[ [ '~' ] ],
+		[ [ 126 ] ],
 		[ [ 247 ] ]
 	],
 	modifiable: true,

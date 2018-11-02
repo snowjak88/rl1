@@ -4,16 +4,12 @@
 package org.snowjak.rl1.display;
 
 import org.snowjak.rl1.Context;
-import org.snowjak.rl1.components.IsDrawable;
 import org.snowjak.rl1.display.MapScrollingDisplay.MapScrollingDisplayInputProcessor.StartScrollingEvent;
 import org.snowjak.rl1.display.MapScrollingDisplay.MapScrollingDisplayInputProcessor.StopScrollingEvent;
 import org.snowjak.rl1.display.screen.AsciiScreen;
-import org.snowjak.rl1.drawable.Drawable;
 import org.snowjak.rl1.map.MapChunk;
 import org.snowjak.rl1.map.MapGenerator;
-import org.snowjak.rl1.util.IntPair;
 
-import com.artemis.ComponentMapper;
 import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.graphics.Color;
 
@@ -49,8 +45,6 @@ public abstract class MapScrollingDisplay extends AbstractDisplay implements Scr
 	 */
 	private int continuousScrollY = 0;
 	
-	private ComponentMapper<IsDrawable> isDrawable;
-	
 	public MapScrollingDisplay(MapChunk mapChunk, AsciiScreen screen) {
 		
 		super(screen, null, false, BorderType.SINGLE_LINE, false);
@@ -59,8 +53,6 @@ public abstract class MapScrollingDisplay extends AbstractDisplay implements Scr
 		Context.get().in().addProcessor(inputProcessor.getPriority(), inputProcessor);
 		inputProcessor.addListener(this, "handleStartScroll");
 		inputProcessor.addListener(this, "handleStopScroll");
-		
-		isDrawable = Context.get().odb().getMapper(IsDrawable.class);
 	}
 	
 	public void handleStartScroll(StartScrollingEvent e) {
@@ -115,21 +107,6 @@ public abstract class MapScrollingDisplay extends AbstractDisplay implements Scr
 					screen.color(getMapForeground(mapX, mapY), getMapBackground(mapX, mapY));
 					screen.put(getMapChar(mapX, mapY), screenX, screenY);
 					
-					final IntPair point = new IntPair(mapX, mapY);
-					if (!mapChunk.getEntitiesAt(point).isEmpty()) {
-						for (int entityID : mapChunk.getEntitiesAt(point).getData()) {
-							if (!isDrawable.has(entityID))
-								continue;
-							final Drawable d = isDrawable.get(entityID).getDrawable();
-							final char[][] c = d.getRepresentation(
-									Math.abs(entityID + point.hashCode()) % d.getCountRepresentations());
-							final Color color = d.getColor(Math.abs(entityID + point.hashCode()) % d.getCountColors());
-							
-							screen.foreground(color);
-							screen.put(c[0][0], screenX, screenY);
-						}
-					}
-					
 				} else {
 					
 					final int chunkX = mapChunk.getChunkX(mapX), chunkY = mapChunk.getChunkY(mapY);
@@ -161,8 +138,8 @@ public abstract class MapScrollingDisplay extends AbstractDisplay implements Scr
 	public abstract void drawAfterMap(AsciiScreen screen);
 	
 	/**
-	 * Convert the given screen X-coordinate to {@link MapGenerator} coordinates
-	 * (taking into account mapChunk-scrolling).
+	 * Convert the given screen (character) X-coordinate to {@link MapGenerator}
+	 * coordinates (taking into account map-scrolling).
 	 * 
 	 * @param screen
 	 * @param screenX
@@ -175,8 +152,8 @@ public abstract class MapScrollingDisplay extends AbstractDisplay implements Scr
 	}
 	
 	/**
-	 * Convert the given screen Y-coordinate to {@link MapGenerator} coordinates
-	 * (taking into account mapChunk-scrolling).
+	 * Convert the given screen (character) Y-coordinate to {@link MapGenerator}
+	 * coordinates (taking into account map-scrolling).
 	 * 
 	 * @param screen
 	 * @param screenY
@@ -230,7 +207,7 @@ public abstract class MapScrollingDisplay extends AbstractDisplay implements Scr
 	
 	/**
 	 * Convert the given {@link MapGenerator} X-coordinate to screen coordinates
-	 * (taking into account mapChunk-scrolling).
+	 * (taking into account map-scrolling).
 	 * 
 	 * @param screen
 	 * @param mapX
@@ -244,7 +221,7 @@ public abstract class MapScrollingDisplay extends AbstractDisplay implements Scr
 	
 	/**
 	 * Convert the given {@link MapGenerator} Y-coordinate to screen coordinates
-	 * (taking into account mapChunk-scrolling).
+	 * (taking into account map-scrolling).
 	 * 
 	 * @param screen
 	 * @param mapY
@@ -349,6 +326,14 @@ public abstract class MapScrollingDisplay extends AbstractDisplay implements Scr
 		this.continuousScrollY = continuousScrollY;
 	}
 	
+	/**
+	 * @return the mapChunk
+	 */
+	public MapChunk getMapChunk() {
+		
+		return mapChunk;
+	}
+	
 	public static class MapScrollingDisplayInputProcessor extends DisplayInputProcessor {
 		
 		public static final int MAP_SCROLLING_DISPLAY_INPUT_PRIORITY = 16;
@@ -356,7 +341,7 @@ public abstract class MapScrollingDisplay extends AbstractDisplay implements Scr
 		private boolean isShiftActive = false;
 		
 		/**
-		 * @param mapChunk
+		 * 
 		 */
 		public MapScrollingDisplayInputProcessor() {
 			

@@ -25,14 +25,8 @@ public class MainDisplay extends AbstractDisplay {
 		
 		super(new AsciiScreen(Context.get().appConfig().getFont(), true), null, false, null, true);
 		
-		mapDisplay = new MapScrollingDisplay(Context.get().mapGenerator().generate(0, 0),
-				getScreen().createSubscreen(Region.LEFT_70)) {
-			
-			@Override
-			public void drawAfterMap(AsciiScreen screen) {
-				
-			}
-		};
+		mapDisplay = new EntityRenderingMapScrollingDisplay(Context.get().mapGenerator().generate(0, 0),
+				getScreen().createSubscreen(Region.LEFT_70));
 		
 		statusDisplay = new AbstractDisplay(getScreen().createSubscreen(Region.RIGHT_30, false), "Status", true,
 				BorderType.BLOCK, false) {
