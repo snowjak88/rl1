@@ -15,7 +15,8 @@ public class Drawable {
 	 * The set of possible representations associated with this Drawable
 	 */
 	public char[][][] representation = null;
-	public Color color = null;
+	public boolean modifiable = false;
+	public Color[] color = null;
 	
 	/**
 	 * Get the 1st representation of this drawable. Equivalent to
@@ -32,17 +33,33 @@ public class Drawable {
 	 * Get the {@code i}th representation of this drawable.
 	 * 
 	 * @param i
-	 * @return <code>null</code> if this drawable's representation has not been
-	 *         defined
+	 * @return <code>null</code> if the given representation has not been defined
 	 */
 	public char[][] getRepresentation(int i) {
+		
+		if (representation == null || representation.length <= i)
+			return null;
 		
 		return representation[i];
 	}
 	
-	public boolean hasColor() {
+	public Color getColor() {
 		
-		return (color != null);
+		return getColor(0);
+	}
+	
+	/**
+	 * Get the {@code i}th possible color of this drawable.
+	 * 
+	 * @param i
+	 * @return <code>null</code> if the given color has not been defined
+	 */
+	public Color getColor(int i) {
+		
+		if (color == null || color.length <= i)
+			return null;
+		
+		return color[i];
 	}
 	
 	/**
@@ -56,6 +73,19 @@ public class Drawable {
 			return 0;
 		
 		return representation.length;
+	}
+	
+	/**
+	 * Get the number of possible colors of this drawable.
+	 * 
+	 * @return
+	 */
+	public int getCountColors() {
+		
+		if (color == null)
+			return 0;
+		
+		return color.length;
 	}
 	
 	public int getWidth() {

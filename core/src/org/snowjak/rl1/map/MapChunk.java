@@ -3,6 +3,15 @@
  */
 package org.snowjak.rl1.map;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import org.snowjak.rl1.Context;
+import org.snowjak.rl1.components.IsDrawable;
+import org.snowjak.rl1.util.IntPair;
+
+import com.artemis.utils.IntBag;
+
 /**
  * A {@link MapChunk} is a section of a {@link MapGenerator} that's been
  * generated out explicitly, and is capable of being interacted with.
@@ -12,10 +21,21 @@ package org.snowjak.rl1.map;
  */
 public class MapChunk {
 	
+	private static final IntBag EMPTY_BAG = new IntBag(0);
+	
 	private final MapConfig config;
 	private final MapGenerator generator;
 	private final int xSize, ySize, xCenter, yCenter;
 	private final float[][] heightmap;
+	
+	/**
+	 * What entities are stored at each location?
+	 */
+	private final Map<IntPair, IntBag> entitiesByLocation = new HashMap<>();
+	/**
+	 * What location is associated with an entity?
+	 */
+	private final Map<Integer, IntPair> locationByEntity = new HashMap<>();
 	
 	/**
 	 * @param generator
@@ -35,6 +55,16 @@ public class MapChunk {
 		for (int x = 0; x < xSize; x++)
 			for (int y = 0; y < ySize; y++) {
 				heightmap[x][y] = (float) generator.getHeightFrac(x + xCenter - halfXSize, y + yCenter - halfYSize);
+				
+				if (heightmap[x][y] < 0.5) {
+					
+					final int entityID = Context.get().odb().create();
+					final IsDrawable drawable = new IsDrawable();
+					drawable.name = "water";
+					
+					Context.get().odb().edit(entityID).add(drawable);
+					addEntityAt(entityID, getMapPoint(new IntPair(x, y)));
+				}
 			}
 	}
 	
@@ -75,18 +105,81 @@ public class MapChunk {
 		return heightmap[getChunkX(x)][getChunkY(y)];
 	}
 	
+	public void addEntityAt(int entityID, IntPair mapPoint) {
+		
+		if (!isInChunk(mapPoint))
+			return;
+		
+		entitiesByLocation.computeIfAbsent(mapPoint, (p) -> new IntBag()).add(entityID);
+		locationByEntity.put(entityID, mapPoint);
+	}
+	
+	public void removeEntity(int entityID) {
+		
+		final IntPair removeFrom = locationByEntity.get(entityID);
+		
+		if (removeFrom == null)
+			return;
+		
+		locationByEntity.remove(entityID);
+		entitiesByLocation.get(removeFrom).removeValue(entityID);
+	}
+	
+	public void moveEntityTo(int entityID, IntPair mapPoint) {
+		
+		removeEntity(entityID);
+		addEntityAt(entityID, mapPoint);
+	}
+	
+	public IntBag getEntitiesAt(IntPair mapPoint) {
+		
+		return entitiesByLocation.getOrDefault(mapPoint, EMPTY_BAG);
+	}
+	
 	/**
 	 * Determines if the given map-point is within this MapChunk.
 	 * 
-	 * @param x
-	 * @param y
+	 * @param mapPoint
 	 * @return
 	 */
-	public boolean isInChunk(int x, int y) {
+	public boolean isInChunk(IntPair mapPoint) {
 		
-		final int chunkX = getChunkX(x), chunkY = getChunkY(y);
+		return isInChunk(mapPoint.getFirst(), mapPoint.getSecond());
+	}
+	
+	/**
+	 * Determines if the given map-point is within this MapChunk.
+	 * 
+	 * @param mapX
+	 * @param mapY
+	 * @return
+	 */
+	public boolean isInChunk(int mapX, int mapY) {
+		
+		final int chunkX = getChunkX(mapX), chunkY = getChunkY(mapY);
+		
+		return isInChunk_internal(chunkX, chunkY);
+	}
+	
+	protected boolean isInChunk_internal(IntPair chunkPoint) {
+		
+		return isInChunk_internal(chunkPoint.getFirst(), chunkPoint.getSecond());
+	}
+	
+	protected boolean isInChunk_internal(int chunkX, int chunkY) {
 		
 		return (chunkX >= 0 && chunkX < xSize && chunkY >= 0 && chunkY < ySize);
+	}
+	
+	/**
+	 * Convert the given map (i.e., world) point into a chunk-relative point.
+	 * 
+	 * @param mapPoint
+	 * @return
+	 */
+	public IntPair getChunkPoint(IntPair mapPoint) {
+		
+		return new IntPair(getChunkX(mapPoint.getFirst()), getChunkY(mapPoint.getSecond()));
 	}
 	
 	/**
@@ -111,6 +204,17 @@ public class MapChunk {
 	public int getChunkY(int y) {
 		
 		return y - yCenter + (ySize / 2);
+	}
+	
+	/**
+	 * Convert the chunk-relative point to a map (i.e., world) point.
+	 * 
+	 * @param chunkPoint
+	 * @return
+	 */
+	public IntPair getMapPoint(IntPair chunkPoint) {
+		
+		return new IntPair(getMapX(chunkPoint.getFirst()), getMapY(chunkPoint.getSecond()));
 	}
 	
 	/**

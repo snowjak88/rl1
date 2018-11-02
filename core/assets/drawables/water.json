@@ -3,5 +3,6 @@
 		[ [ '~' ] ],
 		[ [ 247 ] ]
 	],
-	color: NAVY, ROYAL, SLATE
+	modifiable: true,
+	color: [ NAVY, ROYAL, SLATE ]
 }

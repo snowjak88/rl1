@@ -4,12 +4,16 @@
 package org.snowjak.rl1.display;
 
 import org.snowjak.rl1.Context;
+import org.snowjak.rl1.components.IsDrawable;
 import org.snowjak.rl1.display.MapScrollingDisplay.MapScrollingDisplayInputProcessor.StartScrollingEvent;
 import org.snowjak.rl1.display.MapScrollingDisplay.MapScrollingDisplayInputProcessor.StopScrollingEvent;
 import org.snowjak.rl1.display.screen.AsciiScreen;
+import org.snowjak.rl1.drawable.Drawable;
 import org.snowjak.rl1.map.MapChunk;
 import org.snowjak.rl1.map.MapGenerator;
+import org.snowjak.rl1.util.IntPair;
 
+import com.artemis.ComponentMapper;
 import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.graphics.Color;
 
@@ -45,6 +49,8 @@ public abstract class MapScrollingDisplay extends AbstractDisplay implements Scr
 	 */
 	private int continuousScrollY = 0;
 	
+	private ComponentMapper<IsDrawable> isDrawable;
+	
 	public MapScrollingDisplay(MapChunk mapChunk, AsciiScreen screen) {
 		
 		super(screen, null, false, BorderType.SINGLE_LINE, false);
@@ -53,6 +59,8 @@ public abstract class MapScrollingDisplay extends AbstractDisplay implements Scr
 		Context.get().in().addProcessor(inputProcessor.getPriority(), inputProcessor);
 		inputProcessor.addListener(this, "handleStartScroll");
 		inputProcessor.addListener(this, "handleStopScroll");
+		
+		isDrawable = Context.get().odb().getMapper(IsDrawable.class);
 	}
 	
 	public void handleStartScroll(StartScrollingEvent e) {
@@ -106,6 +114,21 @@ public abstract class MapScrollingDisplay extends AbstractDisplay implements Scr
 					
 					screen.color(getMapForeground(mapX, mapY), getMapBackground(mapX, mapY));
 					screen.put(getMapChar(mapX, mapY), screenX, screenY);
+					
+					final IntPair point = new IntPair(mapX, mapY);
+					if (!mapChunk.getEntitiesAt(point).isEmpty()) {
+						for (int entityID : mapChunk.getEntitiesAt(point).getData()) {
+							if (!isDrawable.has(entityID))
+								continue;
+							final Drawable d = isDrawable.get(entityID).getDrawable();
+							final char[][] c = d.getRepresentation(
+									Math.abs(entityID + point.hashCode()) % d.getCountRepresentations());
+							final Color color = d.getColor(Math.abs(entityID + point.hashCode()) % d.getCountColors());
+							
+							screen.foreground(color);
+							screen.put(c[0][0], screenX, screenY);
+						}
+					}
 					
 				} else {
 					

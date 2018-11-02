@@ -6,6 +6,7 @@ package org.snowjak.rl1.components;
 import org.snowjak.rl1.drawable.Drawable;
 import org.snowjak.rl1.providers.DrawableProvider;
 
+import com.artemis.Component;
 import com.artemis.PooledComponent;
 
 /**
@@ -14,7 +15,7 @@ import com.artemis.PooledComponent;
  * @author snowjak88
  *
  */
-public class IsDrawable extends PooledComponent {
+public class IsDrawable extends Component {
 	
 	private static final DrawableProvider PROVIDER = new DrawableProvider();
 	
@@ -36,9 +37,9 @@ public class IsDrawable extends PooledComponent {
 	 * 
 	 * @see com.artemis.PooledComponent#reset()
 	 */
-	@Override
-	protected void reset() {
-		
-		name = null;
-	}
+//	@Override
+//	protected void reset() {
+//		
+//		name = null;
+//	}
 }

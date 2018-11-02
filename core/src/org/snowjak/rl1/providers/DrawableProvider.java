@@ -6,6 +6,7 @@ package org.snowjak.rl1.providers;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import org.snowjak.rl1.drawable.Drawable;
@@ -87,21 +88,35 @@ public class DrawableProvider extends Provider<Drawable> {
 				for (int x = 0; x < rep.get(r).size(); x++)
 					for (int y = 0; y < rep.get(r).get(x).size(); y++)
 						d.representation[r][x][y] = rep.get(r).get(x).get(y);
+						
+			//
+			//
+			//
+			
+			if (obj.has("modifiable"))
+				d.modifiable = obj.getBoolean("modifiable");
+				
+			//
+			//
+			//
+			
+			if (obj.has("color") && obj.get("color").isArray()) {
+				
+				final List<Color> colors = new ArrayList<>();
+				for (String colorName : obj.get("color").asStringArray()) {
 					
-			if (obj.has("color") && !(obj.getString("color").trim().isEmpty())) {
-				
-				final String colorName = obj.getString("color");
-				
-				//
-				// First, try to evaluate colorName as a hex code (RRGGBBAA)
-				try {
-					d.color = Color.valueOf(colorName);
-				} catch (IndexOutOfBoundsException | NumberFormatException e) {
 					//
-					// Second, try to evaluate colorName as the name of a public static field on
-					// com.badlogic.gdx.graphics.Color
-					d.color = getByName(colorName);
+					// First, try to evaluate colorName as a hex code (RRGGBBAA)
+					try {
+						colors.add(Color.valueOf(colorName));
+					} catch (IndexOutOfBoundsException | NumberFormatException e) {
+						//
+						// Second, try to evaluate colorName as the name of a public static field on
+						// com.badlogic.gdx.graphics.Color
+						colors.add(getByName(colorName));
+					}
 				}
+				d.color = colors.toArray(new Color[0]);
 			}
 			
 			return Optional.of(d);

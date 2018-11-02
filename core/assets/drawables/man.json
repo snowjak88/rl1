@@ -1,5 +1,6 @@
 {
 	representation: [
 		[ [ 1 ] ]
-	]
+	],
+	modifiable: true
 }
