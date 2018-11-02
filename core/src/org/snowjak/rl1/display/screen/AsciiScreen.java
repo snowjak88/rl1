@@ -1,13 +1,13 @@
 /**
  * 
  */
-package org.snowjak.rl1.screen;
+package org.snowjak.rl1.display.screen;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
-import org.snowjak.rl1.screen.AsciiScreen.ResizeEvent;
+import org.snowjak.rl1.display.screen.AsciiScreen.ResizeEvent;
 import org.snowjak.rl1.util.IntPair;
 import org.snowjak.rl1.util.listener.Event;
 import org.snowjak.rl1.util.listener.Listenable;

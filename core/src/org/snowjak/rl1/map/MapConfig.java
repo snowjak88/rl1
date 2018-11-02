@@ -8,6 +8,7 @@ public class MapConfig {
 	private int lowAltitude, highAltitude;
 	private int largestFeature;
 	private float persistence;
+	private int chunkSizeX, chunkSizeY;
 	
 	/**
 	 * @return the lowAltitude
@@ -75,6 +76,40 @@ public class MapConfig {
 	public void setPersistence(float persistence) {
 		
 		this.persistence = persistence;
+	}
+	
+	/**
+	 * @return the chunkSizeX
+	 */
+	public int getChunkSizeX() {
+		
+		return chunkSizeX;
+	}
+	
+	/**
+	 * @param chunkSizeX
+	 *            the chunkSizeX to set
+	 */
+	public void setChunkSizeX(int chunkSizeX) {
+		
+		this.chunkSizeX = chunkSizeX;
+	}
+	
+	/**
+	 * @return the chunkSizeY
+	 */
+	public int getChunkSizeY() {
+		
+		return chunkSizeY;
+	}
+	
+	/**
+	 * @param chunkSizeY
+	 *            the chunkSizeY to set
+	 */
+	public void setChunkSizeY(int chunkSizeY) {
+		
+		this.chunkSizeY = chunkSizeY;
 	}
 	
 }

@@ -1,7 +1,7 @@
 /**
  * 
  */
-package org.snowjak.rl1.screen;
+package org.snowjak.rl1.display.screen;
 
 import java.io.File;
 import java.util.HashMap;

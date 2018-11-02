@@ -19,17 +19,23 @@ public class StandardOptions {
 	@Option(names = "--seed", paramLabel = "SEED-VALUE", description = "Seed with which to initialize the random-number generator.")
 	private String seed = UUID.randomUUID().toString();
 	
-	@Option(names = "--mapGenerator-feature-size", paramLabel = "FEATURE-SIZE", description = "The mapGenerator's largest features will be this many cells wide/long.")
+	@Option(names = "--map-feature-size", paramLabel = "FEATURE-SIZE", description = "The map's largest features will be this many cells wide/long.")
 	private int mapLargestFeature = 128;
 	
-	@Option(names = "--mapGenerator-feature-persistence", paramLabel = "FRACTION", description = "The mapGenerator's high-frequency components will be blurred by this fraction, where 0 is most-smooth and 1 is least-smooth.")
+	@Option(names = "--map-feature-persistence", paramLabel = "FRACTION", description = "The map's high-frequency components will be blurred by this fraction, where 0 is most-smooth and 1 is least-smooth.")
 	private float mapFeaturePersistence = 0.6f;
 	
-	@Option(names = "--mapGenerator-lowest-altitude", paramLabel = "ALTITUDE", description = "The mapGenerator's lowest altitude will equal this value")
+	@Option(names = "--map-lowest-altitude", paramLabel = "ALTITUDE", description = "The map's lowest altitude will equal this value")
 	private int mapLowestAltitude = 0;
 	
-	@Option(names = "--mapGenerator-highest-altitude", paramLabel = "ALTITUDE", description = "The mapGenerator's highest altitude will equal this value")
+	@Option(names = "--map-highest-altitude", paramLabel = "ALTITUDE", description = "The map's highest altitude will equal this value")
 	private int mapHighestAltitude = 300;
+	
+	@Option(names = "--map-chunk-width", paramLabel = "WIDTH-IN-TILES", description = "The map will generate chunks of so many tiles wide.", defaultValue = "128")
+	private int mapChunkWidth = 128;
+	
+	@Option(names = "--map-chunk-height", paramLabel = "HEIGHT-IN-TILES", description = "The map will generate chunks of so many tiles high.", defaultValue = "128")
+	private int mapChunkHeight = 128;
 	
 	/**
 	 * @return the parallelism
@@ -131,6 +137,42 @@ public class StandardOptions {
 	public void setMapHighestAltitude(int mapHighestAltitude) {
 		
 		this.mapHighestAltitude = mapHighestAltitude;
+	}
+
+	
+	/**
+	 * @return the mapChunkWidth
+	 */
+	public int getMapChunkWidth() {
+		
+		return mapChunkWidth;
+	}
+
+	
+	/**
+	 * @param mapChunkWidth the mapChunkWidth to set
+	 */
+	public void setMapChunkWidth(int mapChunkWidth) {
+		
+		this.mapChunkWidth = mapChunkWidth;
+	}
+
+	
+	/**
+	 * @return the mapChunkHeight
+	 */
+	public int getMapChunkHeight() {
+		
+		return mapChunkHeight;
+	}
+
+	
+	/**
+	 * @param mapChunkHeight the mapChunkHeight to set
+	 */
+	public void setMapChunkHeight(int mapChunkHeight) {
+		
+		this.mapChunkHeight = mapChunkHeight;
 	}
 	
 }

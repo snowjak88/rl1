@@ -52,6 +52,8 @@ public class MainAppCommand implements Runnable {
 		mapConfig.setPersistence(standardOptions.getMapFeaturePersistence());
 		mapConfig.setLowAltitude(standardOptions.getMapLowestAltitude());
 		mapConfig.setHighAltitude(standardOptions.getMapHighestAltitude());
+		mapConfig.setChunkSizeX(standardOptions.getMapChunkWidth());
+		mapConfig.setChunkSizeY(standardOptions.getMapChunkHeight());
 		
 		final LwjglApplicationConfiguration lwjglConfig = new LwjglApplicationConfiguration();
 		lwjglConfig.width = appConfig.getWindowWidth();

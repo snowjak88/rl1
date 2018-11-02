@@ -5,8 +5,8 @@ package org.snowjak.rl1.display;
 
 import org.snowjak.rl1.Context;
 import org.snowjak.rl1.display.CommonDisplayInputProcessor.UpdateScaleEvent;
-import org.snowjak.rl1.screen.AsciiScreen;
-import org.snowjak.rl1.screen.AsciiScreen.Region;
+import org.snowjak.rl1.display.screen.AsciiScreen;
+import org.snowjak.rl1.display.screen.AsciiScreen.Region;
 import org.snowjak.rl1.util.listener.Listenable.Registration;
 
 import com.badlogic.gdx.Screen;

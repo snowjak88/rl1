@@ -4,9 +4,8 @@
 package org.snowjak.rl1.display;
 
 import org.snowjak.rl1.Context;
-import org.snowjak.rl1.map.MapGenerator;
-import org.snowjak.rl1.screen.AsciiScreen;
-import org.snowjak.rl1.screen.AsciiScreen.Region;
+import org.snowjak.rl1.display.screen.AsciiScreen;
+import org.snowjak.rl1.display.screen.AsciiScreen.Region;
 
 /**
  * @author snowjak88
@@ -26,7 +25,7 @@ public class MainDisplay extends AbstractDisplay {
 		
 		super(new AsciiScreen(Context.get().appConfig().getFont(), true), null, false, null, true);
 		
-		mapDisplay = new MapScrollingDisplay(new MapGenerator(Context.get().appConfig()).generate(128, 128, 0, 0),
+		mapDisplay = new MapScrollingDisplay(Context.get().mapGenerator().generate(0, 0),
 				getScreen().createSubscreen(Region.LEFT_70)) {
 			
 			@Override

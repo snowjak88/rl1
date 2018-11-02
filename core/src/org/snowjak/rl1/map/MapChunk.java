@@ -20,12 +20,12 @@ public class MapChunk {
 	/**
 	 * @param generator
 	 */
-	public MapChunk(MapConfig config, MapGenerator generator, int xSize, int ySize, int xCenter, int yCenter) {
+	public MapChunk(MapConfig config, MapGenerator generator, int xCenter, int yCenter) {
 		
 		this.config = config;
 		this.generator = generator;
-		this.xSize = xSize;
-		this.ySize = ySize;
+		this.xSize = config.getChunkSizeX();
+		this.ySize = config.getChunkSizeY();
 		this.xCenter = xCenter;
 		this.yCenter = yCenter;
 		
@@ -165,7 +165,7 @@ public class MapChunk {
 		xDir = (xDir < 0) ? -1 : (xDir > 0) ? +1 : 0;
 		yDir = (yDir < 0) ? -1 : (yDir > 0) ? +1 : 0;
 		
-		return new MapChunk(config, generator, xSize, ySize, xCenter + (xSize * xDir), yCenter + (ySize * yDir));
+		return new MapChunk(config, generator, xCenter + (xSize * xDir), yCenter + (ySize * yDir));
 		
 	}
 }

@@ -22,7 +22,7 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
 
-@Command(name = "export-mapGenerator", description = "Exports a section of the game-mapGenerator as an image.")
+@Command(name = "export-map", description = "Exports a section of the game-map as an image.")
 public class ExportMapCommand implements Runnable {
 	
 	private static final Logger LOG = LoggerFactory.getLogger(ExportMapCommand.class);
@@ -33,10 +33,10 @@ public class ExportMapCommand implements Runnable {
 	@Option(names = "--export-output", paramLabel = "PNG-FILE", description = "Filename to export resulting PNG image to.", defaultValue = "export.png")
 	private File outputFile;
 	
-	@Option(names = "--export-width", paramLabel = "WIDTH", description = "Exported mapGenerator will be so many cells wide.", defaultValue = "400")
+	@Option(names = "--export-width", paramLabel = "WIDTH", description = "Exported map will be so many cells wide.", defaultValue = "400")
 	private int mapWidth;
 	
-	@Option(names = "--export-height", paramLabel = "HEIGHT", description = "Exported mapGenerator will be so many cells high.", defaultValue = "400")
+	@Option(names = "--export-height", paramLabel = "HEIGHT", description = "Exported map will be so many cells high.", defaultValue = "400")
 	private int mapHeight;
 	
 	/*
@@ -58,10 +58,12 @@ public class ExportMapCommand implements Runnable {
 		mapConfig.setPersistence(standardOptions.getMapFeaturePersistence());
 		mapConfig.setLowAltitude(standardOptions.getMapLowestAltitude());
 		mapConfig.setHighAltitude(standardOptions.getMapHighestAltitude());
+		mapConfig.setChunkSizeX(standardOptions.getMapChunkWidth());
+		mapConfig.setChunkSizeY(standardOptions.getMapChunkHeight());
 		
 		new App(appConfig);
 		
-		final MapGenerator mapGenerator = new MapGenerator(appConfig);
+		final MapGenerator map = new MapGenerator(appConfig);
 		
 		final BufferedImage img = new BufferedImage(mapWidth, mapHeight, BufferedImage.TYPE_INT_ARGB);
 		
@@ -71,7 +73,7 @@ public class ExportMapCommand implements Runnable {
 		for (int x = -(halfWidth); x < +(halfWidth); x++)
 			for (int y = -(halfHeight); y < +(halfHeight); y++) {
 				
-				final double height = mapGenerator.getHeightFrac(x, y);
+				final double height = map.getHeightFrac(x, y);
 				
 				final int r = (int) (height * 255d) & 255, g = (int) (height * 255d) & 255,
 						b = (int) (height * 255d) & 255;

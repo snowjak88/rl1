@@ -6,9 +6,9 @@ package org.snowjak.rl1.display;
 import org.snowjak.rl1.Context;
 import org.snowjak.rl1.display.MapScrollingDisplay.MapScrollingDisplayInputProcessor.StartScrollingEvent;
 import org.snowjak.rl1.display.MapScrollingDisplay.MapScrollingDisplayInputProcessor.StopScrollingEvent;
+import org.snowjak.rl1.display.screen.AsciiScreen;
 import org.snowjak.rl1.map.MapChunk;
 import org.snowjak.rl1.map.MapGenerator;
-import org.snowjak.rl1.screen.AsciiScreen;
 
 import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.graphics.Color;

@@ -19,8 +19,6 @@ public class IsOnscreen extends PooledComponent {
 	@Override
 	protected void reset() {
 		
-		// TODO Auto-generated method stub
-		
 	}
 	
 }

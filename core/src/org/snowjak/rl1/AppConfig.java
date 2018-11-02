@@ -13,8 +13,8 @@ import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.snowjak.rl1.display.screen.AsciiFont;
 import org.snowjak.rl1.map.MapConfig;
-import org.snowjak.rl1.screen.AsciiFont;
 import org.snowjak.rl1.util.Converters;
 
 import com.badlogic.gdx.utils.Disposable;
@@ -45,10 +45,11 @@ public class AppConfig implements Disposable {
 	
 	private static final String KEY_SEED = "seed";
 	
-	private static final String KEY_MAP_LARGEST_FEATURE = "mapGenerator.features.largest";
-	private static final String KEY_MAP_PERSISTENCE = "mapGenerator.features.persistence";
-	private static final String KEY_MAP_LOWEST_ALTITUDE = "mapGenerator.features.lowest",
-			KEY_MAP_HIGHEST_ALTITUDE = "mapGenerator.features.highest";
+	private static final String KEY_MAP_LARGEST_FEATURE = "map.features.largest";
+	private static final String KEY_MAP_PERSISTENCE = "map.features.persistence";
+	private static final String KEY_MAP_LOWEST_ALTITUDE = "map.features.lowest",
+			KEY_MAP_HIGHEST_ALTITUDE = "map.features.highest";
+	private static final String KEY_MAP_CHUNK_WIDTH = "map.chunk.width", KEY_MAP_CHUNK_HEIGHT = "map.chunk.height";
 	
 	private int parallelism = Runtime.getRuntime().availableProcessors();
 	
@@ -314,6 +315,11 @@ public class AppConfig implements Disposable {
 				getConfig(p, KEY_MAP_HIGHEST_ALTITUDE, () -> this.getMapConfig().getHighAltitude(),
 						(i) -> this.getMapConfig().setHighAltitude(i), Integer.class);
 				
+				getConfig(p, KEY_MAP_CHUNK_WIDTH, () -> this.getMapConfig().getChunkSizeX(),
+						(i) -> this.getMapConfig().setChunkSizeX(i), Integer.class);
+				getConfig(p, KEY_MAP_CHUNK_HEIGHT, () -> this.getMapConfig().getChunkSizeY(),
+						(i) -> this.getMapConfig().setChunkSizeY(i), Integer.class);
+				
 			} catch (IOException e) {
 				LOG.error("Cannot load stored options from config-file \"" + CONFIG_FILE.getPath()
 						+ "\". Falling back to defaults.", e);
@@ -350,6 +356,9 @@ public class AppConfig implements Disposable {
 			setConfig(p, KEY_MAP_PERSISTENCE, () -> this.getMapConfig().getPersistence());
 			setConfig(p, KEY_MAP_LOWEST_ALTITUDE, () -> this.getMapConfig().getLowAltitude());
 			setConfig(p, KEY_MAP_HIGHEST_ALTITUDE, () -> this.getMapConfig().getHighAltitude());
+			
+			setConfig(p, KEY_MAP_CHUNK_WIDTH, () -> this.getMapConfig().getChunkSizeX());
+			setConfig(p, KEY_MAP_CHUNK_HEIGHT, () -> this.getMapConfig().getChunkSizeY());
 			
 			p.store(w, "RL1 Options (auto-saved)");
 			
